@@ -3,14 +3,13 @@
  * @projectDescription jPlusUI: 一个轻量但完整的 Web UI 组件库。
  * @copyright 2011-2012 J+ Team
  * @license The BSD License
- * @author xuld
  * @fileOverview 定义最基本的工具函数。
  * @pragma defaultExtends JPlus.Base
  */
 
 // 可用的宏
-// 	CompactMode - 兼容模式 - 支持 IE6+ FF3+ Chrome10+ Opera10.5+ Safari5+ , 若无此宏，将只支持 HTML5。
-// 	Publish - 启用发布操作 - 删除 assert 、 trace 、 imports 和 using 支持。
+//  CompactMode - 兼容模式 - 支持 IE6+ FF3+ Chrome10+ Opera10.5+ Safari5+ , 若无此宏，将只支持 HTML5。
+//  Publish - 启用发布操作 - 删除 assert 、 trace 、 imports 和 using 支持。
 
 
 (function (window, undefined) {
@@ -59,14 +58,14 @@
 		 * @namespace JPlus
 		 */
 		JPlus = window.JPlus = {
-
+			
 			/**
 			 * 所有类的基类。
 			 * @abstract class
 			 * {@link JPlus.Base} 提供了全部类都具有的基本函数。
 			 */
 			Base: Base,
-
+			
 			/**
 			 * 将一个原生的 Javascript 函数对象转换为一个类。
 			 * @param {Function/Class} constructor 用于转换的对象，将修改此对象，让它看上去和普通的类一样。
@@ -109,7 +108,7 @@
 			version: /*@VERSION*/1.00
 
 		},
-		
+
 		/**
 		 * 类成员方法。
 		 * @type Object
@@ -124,9 +123,9 @@
 			 * @see #implementIf
 			 * @example 以下示例演示了如何扩展 Number 类的成员。<pre>
 			 * Number.implement({
-			 *   sin: function () {
-			 * 	    return Math.sin(this);
-			 *  }
+			 *      sin: function () {
+			 * 	        return Math.sin(this);
+			 *      }
 			 * });
 			 *
 			 * (1).sin();  //  Math.sin(1);
@@ -182,33 +181,33 @@
 			 * });
 			 * </pre>
 			 */
-			defineMethods: function(targetProperty, methods, args) {
-				
+			defineMethods: function (targetProperty, methods, args) {
+
 				assert.isString(methods, "MyClass.defineMethods(targetProperty, methods): {methods} ~");
-				
+
 				var propertyGetterFunc;
-				
-				if(/\(\)$/.test(targetProperty)){
+
+				if (/\(\)$/.test(targetProperty)) {
 					propertyGetterFunc = targetProperty.substr(0, targetProperty.length - 2);
 				}
-				
+
 				// 最后使用 implement 添加成员。
-				return this.implement(Object.map(methods, function(fnName) {
-				    return function (arg0, arg1, arg2) {
-						
+				return this.implement(Object.map(methods, function (fnName) {
+					return function (arg0, arg1, arg2) {
+
 						// 获取实际调用的函数目标对象。
 						var target = propertyGetterFunc ? this[propertyGetterFunc]() : this[targetProperty],
 							r;
-							
+
 						assert(target, "#" + targetProperty + " 不能为空。");
 						assert(!target || target[fnName], "#" + targetProperty + "." + fnName + "(): 不是函数。");
 
 						r = target[fnName];
-						
-				        // 调用被代理的实际函数。
-                        // 不能使用 .apply: IE 6/7 原生函数不是 function 。
+
+						// 调用被代理的实际函数。
+						// 不能使用 .apply: IE 6/7 原生函数不是 function 。
 						r = r.apply ? r.apply(target, arguments) : r(arg0, arg1, arg2);
-						
+
 						// 如果不是 getter，返回 this 链式引用。
 						return target === r || r === undefined ? this : r;
 					};
@@ -304,22 +303,22 @@
 			addEvents: function (eventName, properties) {
 
 				assert.isString(eventName, "MyClass.addEvents(eventName, properties): {eventName} ~");
-				
+
 				// 获取存储事件信息的变量。如果不存在则创建。
 				var eventObj = this.$event || (this.$event = {}),
 					defaultEvent = eventObj.$default;
-					
-				if(properties) {
+
+				if (properties) {
 					Object.extendIf(properties, defaultEvent);
-					
+
 					// 处理 base: 'event' 字段，自动生成 add 和 remove 函数。
-					if(properties.base) {
+					if (properties.base) {
 						assert(defaultEvent, "使用 base 字段功能必须预先定义 $default 事件。");
-						properties.add = function(obj, type, fn){
+						properties.add = function (obj, type, fn) {
 							defaultEvent.add(obj, this.base, fn);
 						};
-						
-						properties.remove = function(obj, type, fn){
+
+						properties.remove = function (obj, type, fn) {
 							defaultEvent.remove(obj, this.base, fn);
 						};
 					}
@@ -368,10 +367,10 @@
 			 */
 			extend: function (members) {
 
-			    // 未指定函数 使用默认构造函数(Object.prototype.constructor);
+				// 未指定函数 使用默认构造函数(Object.prototype.constructor);
 
 				// 生成子类 。
-			    var subClass = members && members.hasOwnProperty("constructor") ? members.constructor : function () {
+				var subClass = members && members.hasOwnProperty("constructor") ? members.constructor : function () {
 
 					// 调用父类构造函数 。
 					arguments.callee.base.apply(this, arguments);
@@ -440,7 +439,7 @@
 				}
 
 				return dest;
-			}
+			};
 		})(),
 
 		/// #else
@@ -498,7 +497,7 @@
 
 			assert(typeof iterable !== 'function', "Object.each(iterable, fn, scope): {iterable} 不能是函数。 ", iterable);
 			assert(typeof fn === 'function', "Object.each(iterable, fn, scope): {fn} 必须是函数。", fn);
-			
+
 			// 如果 iterable 是 null， 无需遍历 。
 			if (iterable != null) {
 
@@ -570,9 +569,9 @@
 				iterable = iterable.split(' ');
 				actualFn = typeof fn === 'function' ? dest ? function (value, key, array) {
 					this[value] = fn(value, key, array);
-				} : fn : function(value){
+				} : fn : function (value) {
 					this[value] = fn;
-				}
+				};
 			} else {
 				dest = typeof iterable.length !== "number" ? {} : [];
 				actualFn = function (value, key, array) {
@@ -589,7 +588,7 @@
 
 	});
 
-    /**
+	/**
      * 表示一个空函数。这个函数总是返回 undefined 。
      * @property
      * @type Function
@@ -611,8 +610,8 @@
   	 * 
   	 * String.format 也支持使用一个 JSON来作为格式化参数。
   	 * 如 String.format("{year} 年 {month} 月 ", { year: 2012, month:12});
-  	 * 若要使用这个功能，请确保 String.format 函数有且仅有 2个参数，且第二个参数是一个 Object。
-  	 * 
+	 * 若要使用这个功能，请确保 String.format 函数有且仅有 2个参数，且第二个参数是一个 Object。
+	 *
   	 * 格式化的字符串{}不允许包含空格。
   	 * 
   	 * 默认地，String.format 将使用函数的作用域(默认为 String) 函数将参数格式化为字符串后填入目标字符串。
@@ -622,10 +621,10 @@
 	 * 不要出现{{{ 和 }}} 这样将获得不可预知的结果。
 	 * @memberOf String
 	 * @example <pre>
-	 *  String.format("{0}转换", 1); //  "1转换"
-	 *  String.format("{1}翻译",0,1); // "1翻译"
-	 *  String.format("{a}翻译",{a:"也可以"}); // 也可以翻译
-	 *  String.format("{{0}}不转换, {0}转换", 1); //  "{0}不转换1转换"
+	 * String.format("{0}转换", 1); //  "1转换"
+	 * String.format("{1}翻译",0,1); // "1翻译"
+	 * String.format("{a}翻译",{a:"也可以"}); // 也可以翻译
+	 * String.format("{{0}}不转换, {0}转换", 1); //  "{0}不转换1转换"
 	 * </pre>
 	 */
 	String.format = function (formatString, args) {
@@ -639,21 +638,21 @@
 
 		// 通过格式化返回
 		return formatString ? formatString.replace(/\{+?(\S*?)\}+/g, function (match, name) {
-			var start = match.charAt(1) == '{', end = match.charAt(match.length - 2) == '}';
+			var start = match.charAt(1) === '{', end = match.charAt(match.length - 2) === '}';
 			if (start || end)
 				return match.slice(start, match.length - end);
 			return name in args ? toString(args[name]) : "";
 		}) : "";
 	};
 
-    /**
+	/**
 	 * 系统原生的数组对象。
 	 * @class Array
 	 */
 	if (!Array.isArray) {
 
 
-	    /**
+		/**
 		 * 判断一个变量是否是数组。
 		 * @param {Object} obj 要判断的变量。
 		 * @return {Boolean} 如果是数组，返回 true， 否则返回 false。
@@ -664,9 +663,9 @@
 	     * Array.isArray(new Array); // true
 	     * </pre>
 		 */
-	    Array.isArray = function (obj) {
-	        return toString.call(obj) === "[object Array]";
-	    }
+		Array.isArray = function (obj) {
+			return toString.call(obj) === "[object Array]";
+		};
 
 	}
 
@@ -725,7 +724,7 @@
 	 * </pre>
 	 */
 	window.Class = function (members) {
-		
+
 		// 所有类都是继承 JPlus.Base 创建的。
 		return Base.extend(members);
 	};
@@ -769,7 +768,7 @@
 
 			// 浏览器名字。
 			browser = match[1],
-			
+
 			// IE678 = false, 其它 = true
 			isStd = !!+"\v1";
 
@@ -1039,38 +1038,38 @@
 	        	data = me.dataField(),
 	        	eventListener,
 	        	eventManager;
-			
+
 			// 获取存储事件对象的空间。
 			data = data.$event || (data.$event = {});
-			
+
 			// 获取当前事件对应的函数监听器。
 			eventListener = data[eventName];
-			
+
 			// 生成默认的事件作用域。
 			scope = [eventHandler, scope || me];
 
 			// 如果未绑定过这个事件, 则不存在监听器，先创建一个有关的监听器。
 			if (!eventListener) {
-				
+
 				// 获取事件管理对象。
 				eventManager = getMgr(me, eventName);
 
 				// 生成实际处理事件的监听器。
 				data[eventName] = eventListener = function (e) {
-					var eventListener = arguments.callee, 
-						handlers = eventListener.handlers.slice(0), 
+					var eventListener = arguments.callee,
+						handlers = eventListener.handlers.slice(0),
 						handler,
-						i = -1, 
+						i = -1,
 						length = handlers.length;
-					
+
 					// 循环直到 return false。
 					while (++i < length) {
 						handler = handlers[i];
 						if (handler[0].call(handler[1], e) === false) {
-							
+
 							// 如果存在 stopEvent 处理函数，则调用。
 							// 如果当前函数是因为 initEvent 返回 false 引起，则不执行 stopEvent 。
-							if(handler[2] !== true && (handler = eventListener.stop)){
+							if (handler[2] !== true && (handler = eventListener.stop)) {
 								handler[0].call(handler[1], e);
 							}
 							return false;
@@ -1079,14 +1078,14 @@
 
 					return true;
 				};
-				
+
 				// 当前事件的全部函数。
-				eventListener.handlers = eventManager.initEvent ? 
-					[[eventManager.initEvent, me, true], scope] : 
+				eventListener.handlers = eventManager.initEvent ?
+					[[eventManager.initEvent, me, true], scope] :
 					[scope];
 
 				// 如果事件允许阻止，则存储字段。
-				if(eventManager.stopEvent) {
+				if (eventManager.stopEvent) {
 					eventListener.stop = [eventManager.stopEvent, me];
 				}
 
@@ -1096,7 +1095,7 @@
 				}
 
 			} else {
-						
+
 				// 添加到 handlers 。
 				eventListener.handlers.push(scope);
 			}
@@ -1132,8 +1131,8 @@
 		trigger: function (eventName, e) {
 
 			// 获取本对象 本对象的数据内容 本事件值 。
-			var me = this, 
-				data = me.dataField().$event, 
+			var me = this,
+				data = me.dataField().$event,
 				eventManager;
 
 			// 执行事件。
@@ -1186,17 +1185,17 @@
 			assert(!eventHandler || typeof eventHandler === 'function', 'JPlus.Base#un(eventName, eventHandler): {eventHandler} 必须是函数。', eventHandler);
 
 			// 获取本对象 本对象的数据内容 本事件值
-			var me = this, 
-				data = me.dataField().$event, 
-				eventListener, 
-				handlers, 
+			var me = this,
+				data = me.dataField().$event,
+				eventListener,
+				handlers,
 				i;
-			
+
 			if (data) {
-				
+
 				// 获取指定事件的监听器。
 				if (eventListener = data[eventName]) {
-					
+
 					// 如果删除特定的处理函数。
 					// 搜索特定的处理函数。
 					if (eventHandler) {
@@ -1206,12 +1205,12 @@
 
 						// 根据常见的需求，这里逆序搜索有助于提高效率。
 						while (i-- > 0) {
-							
+
 							if (handlers[i][0] === eventHandler) {
-								
+
 								// 删除 hander 。
 								handlers.splice(i, 1);
-								
+
 								// 如果删除后只剩 0 个句柄，或只剩 1个 initEvent 句柄，则删除全部数据。
 								if (!i || (i === 1 && handlers[0] === true)) {
 									eventHandler = 0;
@@ -1228,7 +1227,7 @@
 
 						// 删除对事件处理句柄的全部引用，以允许内存回收。
 						delete data[eventName];
-						
+
 						// 获取事件管理对象。
 						data = getMgr(me, eventName);
 
@@ -1273,8 +1272,8 @@
 			assert.isFunction(eventHandler, 'JPlus.Base#once(eventName, eventHandler): {eventHandler} ~');
 
 			// 先插入一个用于删除句柄的函数。
-			return this.on(eventName, function(){
-				this.un(eventName, eventHandler).un(eventName, arguments.callee);	
+			return this.on(eventName, function () {
+				this.un(eventName, eventHandler).un(eventName, arguments.callee);
 			}).on(eventName, eventHandler, scope);
 		}
 
@@ -1354,7 +1353,7 @@
 		bind: function (scope) {
 
 			var me = this;
-			
+
 			// 返回对 scope 绑定。
 			return function () {
 				return me.apply(scope, arguments);
@@ -1614,7 +1613,7 @@
 
 		// 直接遍历，不判断是否为真实成员还是原型的成员。
 		for (var key in src)
-		    dest[key] = src[key];
+			dest[key] = src[key];
 		return dest;
 	}
 
@@ -1667,7 +1666,7 @@
 	 * @return {Object} 符合要求的事件管理器，如果找不到合适的，返回默认的事件管理器。
 	 */
 	function getMgr(obj, eventName) {
-		var clazz = obj.constructor, 
+		var clazz = obj.constructor,
 			t;
 
 		// 遍历父类，找到指定事件。
@@ -1726,7 +1725,7 @@ function trace() {
 		if (hasConsole && console.log && console.log.apply) {
 			return console.log.apply(console, arguments);
 		}
-		
+
 		// 最后使用 trace.inspect
 		for (var i = 0, r = []; i < arguments.length; i++) {
 			r[i] = trace.inspect(arguments[i]);
@@ -1950,7 +1949,7 @@ function imports(namespace) {
 								return r;
 							}
 
-							return '[Node type=' + obj.nodeType +' name=' + obj.nodeName + ' value=' + obj.nodeValue + ']';
+							return '[Node type=' + obj.nodeType + ' name=' + obj.nodeName + ' value=' + obj.nodeValue + ']';
 						}
 						var r = "{\r\n", i, flag = 0;
 						for (i in obj) {
@@ -2112,14 +2111,14 @@ function imports(namespace) {
 		 * @config {Boolean} stackTrace
 		 */
 		stackTrace: true,
-		
+
 		debugStepThrough: true,
-		
+
 		/**
 		 * 指示一个函数已过时。
 		 * @param {String} message="此成员已过时" 提示的信息。
 		 */
-		deprected: function(message) {
+		deprected: function (message) {
 			trace.warn(message || "此成员已过时");
 		},
 
@@ -2249,21 +2248,21 @@ function imports(namespace) {
          * JPlus.loadScript('./v.js');
          * </pre>
          */
-	    loadScript: function (url) {
+		loadScript: function (url) {
 
-	        var src = using.loadText(url);
+			var src = using.loadText(url);
 
-	        if(src){
-	            try {
-	                if(window.execScript) {
-	                    window.execScript(src);
-	                } else {
-	                    window["eval"].call(window, src);
-	                }
-	            } catch (e) {
-	                trace.error("执行 " + url + " 出现错误: " + e.toString());
-	            } 
-	        }
+			if (src) {
+				try {
+					if (window.execScript) {
+						window.execScript(src);
+					} else {
+						window["eval"].call(window, src);
+					}
+				} catch (e) {
+					trace.error("执行 " + url + " 出现错误: " + e.toString());
+				}
+			}
 		},
 
 		/**
@@ -2296,7 +2295,7 @@ function imports(namespace) {
 
 			// 新建请求。
 			// 下文对 XMLHttpRequest 对象进行兼容处理。
-		    var xmlHttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP"),
+			var xmlHttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP"),
 		        status;
 
 			try {
@@ -2307,21 +2306,21 @@ function imports(namespace) {
 				// 发送请求。
 				xmlHttp.send(null);
 
-                // 获取返回的状态码。
+				// 获取返回的状态码。
 				status = xmlHttp.status;
 
-                // 判断状态码是否合格。
+				// 判断状态码是否合格。
 				if ((status >= 200 && status < 300) || status == 304 || status == 1223) {
-				    // 返回相应内容。
-				    return xmlHttp.responseText;
+					// 返回相应内容。
+					return xmlHttp.responseText;
 				} else {
-				    throw "服务器返回状态码 " + status;
+					throw "服务器返回状态码 " + status;
 				}
 
 			} catch (e) {
 
-			    // 调试输出。
-			    trace.error("请求失败: " + url + " \r\n\t原因: " + (window.location.protocol == "file:" ? " 本网页是使用 file 协议打开的，请改用 http 协议。" : e.toString()));
+				// 调试输出。
+				trace.error("请求失败: " + url + " \r\n\t原因: " + (window.location.protocol == "file:" ? " 本网页是使用 file 协议打开的，请改用 http 协议。" : e.toString()));
 
 			} finally {
 

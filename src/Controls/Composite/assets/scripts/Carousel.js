@@ -134,9 +134,9 @@ var Carousel = Control.extend({
 	start: function () {
 	    var me = this;
 	    if (!me.timer) {
-	        me.step = function () {
-	            me.moveTo(me.currentIndex + 1, true);
-	        }
+	    	me.step = function () {
+	    		me.moveTo(me.currentIndex + 1, true);
+	    	};
 	        me.timer = setTimeout(me.step, me.delay);
 	    }
 	    return me;

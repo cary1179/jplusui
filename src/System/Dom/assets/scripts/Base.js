@@ -2462,7 +2462,7 @@ using("System.Core.Base");
 
 			    eventName = (/^\w+/.exec(eventAndSelector) || [''])[0];
 
-			    assert(eventName, "Dom#bind(eventAndSelector, handler): {eventAndSelector} 中不存在事件信息。正确的 eventAndSelector 格式： click.selector")
+			    assert(eventName, "Dom#bind(eventAndSelector, handler): {eventAndSelector} 中不存在事件信息。正确的 eventAndSelector 格式： click.selector");
 
 			    if (selector = eventAndSelector.substr(eventName.length)) {
 			        this.delegate(selector, eventName, handler);
