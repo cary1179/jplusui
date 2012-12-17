@@ -919,7 +919,9 @@ using("System.Core.Base");
 					id.nodeType || id.setTimeout ? 
 						new Dom(id) :
 						id.node ? 
-							new Dom(id.node) :
+							id instanceof Dom ?
+								id :
+								new Dom(id.node) :
 							Dom.get(id[0]) : 
 					null;
 		},
