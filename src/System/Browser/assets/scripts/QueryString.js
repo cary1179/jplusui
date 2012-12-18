@@ -4,17 +4,7 @@
 
 using("System.Data.QueryString");
 
-(function () {
-	var loc = location.constructor ? location.constructor.prototype : location;
 
-	// Chrome 23 可能更新 location
-	if (Object.defineProperty) {
-		Object.defineProperty(loc, "query", {
-			get: function () {
-				return this._query || (this._query = QueryString.parse(this.search));
-			}
-		});
-	} else {
-		loc.query = QueryString.parse(location.search);
-	}
-})();
+// Chrome 23 可能更新 location
+// Firefox 无法扩展 location
+(!navigator.isFirefox && location.constructor ? location.constructor.prototype : location).query = QueryString.parse(location.search);
