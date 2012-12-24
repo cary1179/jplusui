@@ -404,7 +404,7 @@ using("System.Core.Base");
 			 * @return {Dom} 发生事件 Dom 对象。
 			 */
 			getTarget: function() {
-				return new Dom(this.orignalType && this.currentTarget || (this.target.nodeType === 3 ? this.target.parentNode: this.target));
+				return new Dom((this.orignalType && this.currentTarget) || (this.target.nodeType === 3 ? this.target.parentNode : this.target));
 			}
 		}),
 		
@@ -2566,7 +2566,7 @@ using("System.Core.Base");
 						handlerInfo,
 						
 						delegateTarget;
-						
+					
 					for(i = 0; i < delegateHandlers.length; i++){
 					
 						handlerInfo = delegateHandlers[i];
@@ -3549,7 +3549,7 @@ using("System.Core.Base");
 
 	/// #region Event
 
-	map("$default mousewheel blur focus scroll change select submit resize error load unload touchstart touchmove touchend hashchange", defaultEvent, Dom.$event);
+	map("$default mousewheel blur focus focusin focusout scroll change select submit resize error load unload touchstart touchmove touchend hashchange", defaultEvent, Dom.$event);
 	
 	/// #if CompactMode
 
@@ -3751,30 +3751,27 @@ using("System.Core.Base");
 	if(div.onfocusin === undefined) {
 
 		Dom.addEvents('focusin focusout', {
-			fix: function(elem, type, fnName) {
-				var base = type === 'focusin' ? 'focus' : 'blur';
+			add: function (elem, type, fn) {
 				var doc = elem.node.ownerDocument || elem.node;
-				doc[fnName](base, this.handler, true);
-			},
-			handler: function(e) {
-				var type = e.orignalType = e.type === 'focus' ? 'focusin' : 'focusout';
+				var data = doc.$data || (doc.$data = {});
 
-				var p = e.getTarget();
+				if (!data[type + 'Handler']) {
+					data[type + 'Handler'] = function (e) {
+						if (e.eventPhase <= 1) {
+							var p = elem;
+							while (p && p.parent) {
+								if (!p.trigger(type, e)) {
+									return;
+								}
 
-				while (p) {
-					if (!p.trigger(type, e)) {
-						return;
-					}
-					p = p.parent();
+								p = p.parent();
+							}
+
+							doc.trigger(type, e);
+						}
+					};
+					doc.addEventListener(type === 'focusin' ? 'focus' : 'blur', data[type + 'Handler'], true);
 				}
-
-				document.trigger(type, e);
-			},
-			add: function(elem, type, fn) {
-				this.fix(elem, type, 'addEventListener');
-			},
-			remove: function() {
-				this.fix(elem, type, 'removeEventListener');
 			}
 		});
 
@@ -3985,8 +3982,7 @@ using("System.Core.Base");
 	window.Dom = Dom;
 	window.DomList = DomList;
 	window.Point = Point;
-	window.$ = window.$ || Dom.get;
-	window.$$ = window.$$ || Dom.query;
+	window.$ = window.$ || Dom.query;
 	
 	/// #endregion
 
