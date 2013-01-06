@@ -3816,10 +3816,10 @@ using("System.Core.Base");
 	});
 	
 	Dom.addEvents('focus', {
-			delegate: 'focusin'
-		}).addEvents('blur', {
-			delegate: 'focusout'
-		});
+		delegate: 'focusin'
+	}).addEvents('blur', {
+		delegate: 'focusout'
+	});
 	
 	/// #endregion
 

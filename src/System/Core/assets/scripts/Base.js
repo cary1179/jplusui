@@ -1982,7 +1982,7 @@ function imports(namespace) {
          */
 		log: function (message) {
 			if (trace.enable && window.console && console.log) {
-				window.console.log(message);
+				return console.log(message);
 			}
 		},
 
@@ -1993,7 +1993,7 @@ function imports(namespace) {
 		error: function (msg) {
 			if (trace.enable) {
 				if (window.console && console.error)
-					window.console.error(msg); // 这是一个预知的错误，请根据函数调用堆栈查找错误原因。
+					return console.error(msg); // 这是一个预知的错误，请根据函数调用堆栈查找错误原因。
 				else
 					throw msg; // 这是一个预知的错误，请根据函数调用堆栈查找错误原因。
 			}
@@ -2006,9 +2006,9 @@ function imports(namespace) {
 		warn: function (msg) {
 			if (trace.enable) {
 				if (window.console && console.warn)
-					window.console.warn(msg);
+					return console.warn(msg);
 				else
-					window.trace("[警告]" + msg);
+					return trace("[警告]" + msg);
 			}
 		},
 
