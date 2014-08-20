@@ -18,13 +18,13 @@ var Cookie = {
 	 * 设置 Cookie 。
 	 * @param {String} name 名字。
 	 * @param {String} value 值。
-	 * @param {Object} options 其它属性。如 domain, path, secure， expires    。
+	 * @param {Object} options 其它属性。如 domain, path, secure， expires (单位：天)   。
 	 */
 	set: function (name, value, options) {
 		//assert.isString(name, "Cookie.get(name): 参数 {name} ~");
 		var e = encodeURIComponent,
 				updatedCookie = e(name) + "=" + e(value),
-				expires = !options || options.expires === undefined ? value === null ? -1 : 1000 : expires;
+				expires = options && options.expires !== undefined ? options.expires : value === null ? -1 : 365;
 				t = new Date();
 
 		t.setHours(t.getHours() + expires * 24);
