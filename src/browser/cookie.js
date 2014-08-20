@@ -24,7 +24,7 @@ var Cookie = {
 		//assert.isString(name, "Cookie.get(name): 参数 {name} ~");
 		var e = encodeURIComponent,
 				updatedCookie = e(name) + "=" + e(value),
-				expires = options && options.expires === undefined ?value === null ? -1 : 1000 : expires;
+				expires = !options || options.expires === undefined ? value === null ? -1 : 1000 : expires;
 				t = new Date();
 
 		t.setHours(t.getHours() + expires * 24);
