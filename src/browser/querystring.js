@@ -2,7 +2,7 @@
 
 
 //#include core/base.js
-//#include data/querystring.js
+//#include text/querystring.js
 
 
 // Chrome 23 可能更新 location

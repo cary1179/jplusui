@@ -24,7 +24,7 @@ var framewroks = {
 		js: [
 			'../../../../src/core/core.js',
 			'../../../../src/core/class.js',
-			'../../../../src/dom/base.js',
+			'../../../../src/dom/core.js',
 			'../../../../src/dom/jquery-style.js'
 		],
 		init:  function(window){
