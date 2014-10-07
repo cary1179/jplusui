@@ -1,231 +1,257 @@
+/**
+ * @fileOverview 简单但完整的模板引擎。
+ */
+
+// #include core/core.js
 
 /**
+ * 表示一个 JavaScript 模板解析器。
  * @class Tpl
- * @example Tpl.parse("{if a}OK{end}", {a:1}); //=> OK
- * 模板解析字符串语法:
- * 模板字符串由静态数据和解析单元组成。
- * 普通的内容叫静态的数据，解析前后，静态数据不变。
- * 解析单元由 { 开始， } 结束。解析单元可以是:
- * 1. Javascript 变量名: 这些变量名来自 Tpl.parse 的第2个参数， 比如第二个参数是 {a:[1]} ，那 {a[0]}将返回 1 。
- * 2. if/for/end/else/eval 语句，这5个是内置支持的语法。
- * 2.1 if: {if a} 或  {if(a)} 用来判断一个变量，支持全部Javascript表达式，如 {if a==1} 。语句 {if} 必须使用 {end} 关闭。
- * 2.2 else 等价于 Javascript 的 else， else后可同时有 if语句，比如: {else if a}
- * 2.3 for: {for a in data} for用来遍历对象或数组。  语句 {for} 必须使用 {end} 关闭。
- * 2.4 eval: eval 后可以跟任何 Javascript 代码。 比如 {eval nativeFn(1)}
- * 2.5 其它数据，将被处理为静态数据。
- * 3 如果需要在模板内输出 { 或 }，使用 {{} 和 {}} 。 或者使用 \{ 和 \}
- * 4 特殊变量，模板解析过程中将生成4个特殊变量，这些变量将可以方便操作模板
- * 4.1 $output 模板最后将编译成函数，这个函数返回最后的内容， $output表示这个函数的组成代码。
- * 4.2 $data 表示  Tpl.parse 的第2个参数。
- * 4.3 $index 在 for 循环中，表示当前循环的次号。
- * 4.4 $value 在 for 循环中，表示当前被循环的目标。
+ * @example Tpl.parse("{if $data === 1}OK{end}", 1); //=> OK
+ * @remark 模板语法介绍:
+ * 在模板中，可以直接书写最终生成的文本内容，并通过 { 和 } 在文本中插入逻辑代码。
+ * 如：
+ *      hello {if a > 0} world {end}
+ * 其中 {if a > 0} 和 {end} 是模板内部使用的逻辑表达式，用于控制模板的输出内容。
+ * 
+ * 模板内可以使用的逻辑表达式有：
+ * 1. if 语句
+ *      {if 表达式} 
+ *          这里是 if 成功输出的文本 
+ *      {else if 表达式}
+ *          这里是 else if 成功输出的文本 
+ *      {else}
+ *          这里是 else 成功输出的文本 
+ *      {end}
+ * 
+ * 2. for 语句
+ *      {for(var key in obj)}
+ *          {循环输出的内容}
+ *      {end}
+ *      {for(var i = 0; i < arr.length; i++)}
+ *          {循环输出的内容}
+ *      {end}
+ * 
+ * 3. while 语句
+ *      {while 表达式}
+ *          {循环输出的内容}
+ *      {end}
+ * 
+ * 4. function 语句
+ *      {function fn(a, b)}
+ *          {函数主体}
+ *      {end}
+ * 
+ * 5. var 语句
+ *      {var a = 1, b = 2}
+ * 
+ * 6. for each 语句
+ *    为了简化循环操作，模板引擎提供了以相同方式遍历类数组和对象的流程语句。
+ *    其写法和 for 语句类似，和 for 语句最大的区别是 for each 语句没有小括号。
+ *      {for item in obj}
+ *          {循环输出的内容}
+ *      {end}
+ *    for each 语句同时支持类数组和对象，item 都表示遍历的值， $key 表示数组索引或对象键。
+ *    在 for each 语句中，可以使用 $target 获取当前遍历的对象，使用 $key 获取循环变量值。
+ *    存在嵌套 for each 时，它们分别表示最近的值，如需跨语句，可使用变量保存。
+ *    在 for each 语句中，可以使用 {break} 和 {continue} 控制流程。
+ *      {for item in obj}
+ *          {if $key == 0}
+ *              {continue}
+ *          {end}
+ *          {for item2 in item}
+ *              {item2}
+ *          {end}
+ *      {end}
+ * 
+ * 在模板内如果需要插入 { 和 } 本身，分别写成 {{ 和 }}。
+ * 在模板内使用 $data 表示传递给 Tpl.parse 的第2个参数。
+ * 
  */
-function Tpl(tpl, strictMode) {
-    /**
-	 * 把一个模板编译为函数。
-	 * @param {String} tpl 表示模板的字符串。
-	 * @param {Boolean} strictMode 严格模式，不支持省略.前面的对象。
-	 * @return {Function} 返回的函数。
-	 */
-    tpl = this.source = this.build(this.lexer(tpl), strictMode);
-    this.parser = new Function("_", tpl);
-}
+var Tpl = {
 
-Tpl.prototype = {
+    _cache: {},
 
     /**
-	 * 对一个模板进行词法解析。返回拆分的数据单元。
-	 * @param {String} tpl 表示模板的字符串。
-	 * @return {Array} 返回解析后的数据单元。
-	 */
-    lexer: function (tpl) {
+     * 编译指定的模板。
+     * @param {String} tplSource 要编译的模板文本。
+     * @param {String?} cacheKey = tplSource 表示当前模板的键，主要用于缓存。
+     */
+    compile: function (/*String*/tplSource, /*String?*/cacheKey) {
+        cacheKey = cacheKey || tplSource;
+        return Tpl._cache[cacheKey] || (Tpl._cache[cacheKey] = Tpl._compile(tplSource));
+    },
 
-        /**
-		 * [字符串1, 代码块1, 字符串2, 代码块2, ...]
-		 */
-        var output = [],
+    /**
+     * 使用指定的数据解析模板，并返回生成的内容。
+     * @param {String} tplSource 要解析的模板文本。
+     * @param {Object} data 数据。
+     * @param {Object} scope 模板中 this 的指向。
+     * @param {String?} cacheKey = tplSource 表示当前模板的键，主要用于缓存。
+     * @return {String} 返回解析后的模板内容。 
+     */
+    parse: function (/*String*/tplSource, data, scope/*=window*/, /*String?*/cacheKey) {
+        return Tpl.compile(tplSource, cacheKey).call(scope, data);
+    },
 
-			// 块的开始位置。
-			blockStart = -1,
+    _compile: function (/*String*/tplSource) {
 
-			// 块的结束位置。
-			blockEnd = -1;
+        // #region 词法分析
 
-        while ((blockStart = tpl.indexOf('{', blockStart + 1)) >= 0) {
+        // parts = [字符串1, 代码块1, 字符串2, 代码块2, ...]
+        var parts = ['var $output=[]'],
 
-            // 如果 { 后面是 { , 忽略之。
-            if (tpl.charAt(blockStart + 1) === '{') {
+            // 下一个 { 的开始位置。
+            blockStart = -1,
+
+            // 上一个 } 的结束位置。
+            blockEnd = -1,
+
+            // 标记是否是普通文本。
+            isPlainText,
+
+            // 存储所有代码块。
+            commandStack = [];
+
+        while ((blockStart = tplSource.indexOf('{', blockStart + 1)) >= 0) {
+
+            // 忽略 {{。
+            if (tplSource[blockStart + 1] === '{') {
                 blockStart++;
                 continue;
             }
 
-            // 放入第一个数据区块。
-            output.push(tpl.substring(blockEnd + 1, blockStart));
+            // 处理 { 之前的内容。
+            parts.push(tplSource.substring(blockEnd + 1, blockStart));
 
             // 从  blockStart 处搜索 }
             blockEnd = blockStart;
 
-            // 搜索 } 字符，如果找到的字符尾随一个 } 则跳过。
-            do {
-                blockEnd = tpl.indexOf('}', blockEnd + 1);
+            // 搜索 }。
+            while (true) {
+                blockEnd = tplSource.indexOf('}', blockEnd + 1);
 
-                if (tpl.charAt(blockEnd + 1) !== '}' || tpl.charAt(blockEnd + 2) === '}') {
+                // 处理不存在 } 的情况。
+                if (blockEnd == -1) {
+                    Tpl._reportError("缺少 “}”", tplSource.substr(blockStart));
+                    blockEnd = tplSource.length;
+                    break;
+                }
+
+                // 忽略 }}。
+                if (tplSource[blockEnd + 1] !== '}') {
                     break;
                 }
 
                 blockEnd++;
-            } while (true);
-
-            if (blockEnd == -1) {
-                this.throwError("缺少 '}'", tpl.substr(blockStart));
-            } else {
-                output.push(tpl.substring(blockStart + 1, blockStart = blockEnd).trim());
             }
 
+            // 处理 {} 之间的内容。
+            parts.push(tplSource.substring(blockStart + 1, blockEnd));
+
+            // 更新下一次开始查找的位置。
+            blockStart = blockEnd;
+
         }
 
-        // 剩余的部分。
-        output.push(tpl.substring(blockEnd + 1, tpl.length));
+        // 处理 } 之后的内容。
+        parts.push(tplSource.substring(blockEnd + 1, tplSource.length));
 
-        for (var i = output.length - 1; i >= 0; i--) {
-            output[i] = output[i].replace(/([\{\}])\1/g, '$1');
-        }
+        // #endregion
 
-        return output;
-    },
+        // #region 生成代码片段
 
-    /**
-	 * 将词法解析器的结果编译成函数源码。
-	 */
-    build: function (lexerOutput, strictMode) {
-
-        var output = ["var __OUTPUT__=[],__INDEX__,__KEY__,__TMP__;", (strictMode ? '{' : 'with(_){')];
-
-        for (var i = 0, len = lexerOutput.length, source, isString = true; i < len; i++) {
-            source = lexerOutput[i].replace(/([\{\}]){2}/g, "$1");
-
-            if (isString) {
-                output.push("__OUTPUT__.push(\"" + source.replace(/[\"\\\n\r]/g, function (specialChar) {
-                    return Tpl.specialChars[specialChar] || specialChar;
-                }) + "\");");
-            } else {
-                output.push(this.parseMacro(source));
-            }
-
-            isString = !isString;
-        }
-
-        if (this.depth !== 0) {
-            this.throwError(this.depth > 0 ? '缺少 ' + this.depth + ' 个 {end}' : ('多余 ' + -this.depth + ' 个 {end}'), lexerOutput[lexerOutput.length - 1]);
-        }
-
-        output.push("};", "return __OUTPUT__.join('')");
-
-        return output.join('\n');
-    },
-
-    render: function (data, scope) {
-        return this.parser.call(scope, data || {});
-    },
-
-    depth: 0,
-
-    parseMacro: function (macro) {
-        var command = (macro.match(/^\w+\b/) || [''])[0],
-			params = macro.substr(command.length);
-
-        switch (command) {
-            case "end":
-                this.depth--;
-                return "}";
-            case 'if':
-            case 'while':
-                this.depth++;
-                if (!params)
-                    this.throwError("'" + command + "' 语句缺少条件, '" + command + "' 语句的格式为 {" + command + " condition}", macro);
-                macro = command + "(Array.isArray(__TMP__=" + params + ")?__TMP__.length:__TMP__){";
-                break;
-            case 'for':
-                this.depth++;
-                if (command = /^\s*(var\s+)?([\w$]+)\s+in\s+/.exec(params)) {
-                    macro = "var __INDEX#__=0,__TARGET#__={target};\nfor(__KEY__ in __TARGET#__){\nif(!__TARGET#__.hasOwnProperty(__KEY__))continue;\n__INDEX#__++;\nvar {key}=__TARGET#__[__KEY__];\n".replace(/#/g, this.depth).replace('{target}', params.substr(command[0].length)).replace('{key}', command[2]);
-                } else if (/^\(/.test(params)) {
-                    return macro + "{";
-                } else {
-                    this.throwError("'for' 语法错误， 'for' 语句的格式为 {for var_name in obj}", macro);
+        for (var i = 1; i < parts.length; i++) {
+            var part = parts[i],
+                stdCommands,
+                subCommands;
+            if (isPlainText = !isPlainText) {
+                part = '$output.push(\'' + part.replace(/[\"\\\n\r]/g, Tpl._replaceSpecialChars) + '\')';
+            } else if (stdCommands = /^\s*(\w+)\b/.exec(part)) {
+                switch (stdCommands[1]) {
+                    case 'end':
+                        if (!commandStack.length) {
+                            throw new SyntaxError("发现多余的{end}\r\n在“" + parts[i - 1] + "”附近")
+                        }
+                        if (commandStack.pop() === 'foreach') {
+                            part = '},this)';
+                        } else {
+                            part = '}';
+                        }
+                        break;
+                    case 'for':
+                        if (subCommands = /^\s*for\s*(var)?\s*([\w$]+)\s+in\s+(.*)$/.exec(part)) {
+                            commandStack.push('foreach');
+                            part = 'Object.each(' + subCommands[3] + ',function(' + subCommands[2] + ',$key,$target){';
+                            break;
+                        }
+                        commandStack.push('for');
+                        part += '{';
+                        break;
+                    case 'if':
+                    case 'while':
+                    case 'with':
+                        // 追加判断表达式括号。
+                        part = stdCommands[1] + '(' + part.substr(stdCommands[0].length) + '){';
+                        commandStack.push(stdCommands[1]);
+                        break;
+                    case 'else':
+                        subCommands = /if(.*)/.exec(part);
+                        part = subCommands ? '}else if(' + subCommands[1] + ') {' : '}else{';
+                        break
+                    case 'var':
+                        break;
+                    case 'function':
+                        part += '{';
+                        commandStack.push(stdCommands[1]);
+                        break;
+                    case 'break':
+                    case 'continue':
+                        if (commandStack[commandStack.length - 1] === 'foreach') {
+                            part = stdCommands[1].length === 5 ? 'return false' : 'return';
+                        }
+                        break;
+                    default:
+                        part = '$output.push(' + part + ')';
                 }
-                break;
-            case 'else':
-                return '}else ' + (/^\s*if\b/.exec(params) ? this.parseMacro(params.trim()) : '{');
-            case 'var':
-                macro += ';';
-                break;
-            case 'function':
-                this.depth++;
-                macro += '{';
-                break;
-            case 'break':
-            case 'continue':
-                break;
-            case 'eval':
-                macro = params + ";";
-                break;
-            default:
-                macro = '__TMP__=' + macro + ';if(__TMP__!=undefined)__OUTPUT__.push(__TMP__);';
-                break;
+            } else {
+                part = '$output.push(' + part + ')';
+            }
+            parts[i] = part;
         }
 
-        var me = this;
-        return macro.replace(/@(\w+)\b/g, function (_, consts) {
-            return (Tpl.consts[consts] || _).replace(/#/g, me.depth);
-        });
+        parts.push('return $output.join("")');
+
+        // #endregion
+
+        // #region 返回函数
+
+        tplSource = parts.join('\n').replace(/([{}])\1/g, '$1');
+
+        try {
+            if (commandStack.length) {
+                throw new SyntaxError("缺少 " + commandStack.length + " 个 {end}");
+            }
+            return new Function("$data", tplSource);
+        } catch (e) {
+            var message = e.message;
+            message += parts[e.lineNumber - 1] ? '\r\n在“' + parts[e.lineNumber - 1] + '”附近' : '\r\n源码：' + tplSource;
+            throw new SyntaxError(message);
+        }
+
+        // #endregion
+
     },
 
-    throwError: function (message, tpl) {
-        throw new SyntaxError("模块语法错误: " + message + "。 (在 '" + tpl + "' 附近)");
+    _replaceSpecialChars: function (specialChar) {
+        return Tpl._specialChars[specialChar];
+    },
+
+    _specialChars: {
+        '"': '\\"',
+        '\n': '\\n',
+        '\r': '\\r',
+        '\\': '\\\\'
     }
 
 };
-
-Tpl.instances = {};
-
-/**
- * 使用指定的数据解析模板，并返回生成的内容。
- * @param {String} tpl 表示模板的字符串。
- * @param {Object} data 数据。
- * @param {Object} scope 模板中 this 的指向。
- * @return {String} 处理后的字符串。 
- */
-Tpl.parse = function (tpl, data, scope) {
-    return (Tpl.instances[tpl] || (Tpl.instances[tpl] = new Tpl(tpl))).render(data, scope);
-};
-
-Tpl.isLast = function (obj, index) {
-    if (typeof obj.length === 'number')
-        return index >= obj.length - 1;
-
-    for (var p in obj) {
-        indeui--;
-    }
-
-    return !index;
-};
-
-Tpl.consts = {
-    'data': '_',
-    'target': '__TARGET#__',
-    'key': '__KEY__',
-    'index': '__INDEX#__',
-    'first': '__INDEX#__==0',
-    'last': 'Tpl.isLast(__TARGET#__,__INDEX#__)',
-    'odd': '__INDEX#__%2===1',
-    'even': '__INDEX#__%2'
-};
-
-Tpl.specialChars = {
-    '"': '\\"',
-    '\n': '\\n',
-    '\r': '\\r',
-    '\\': '\\\\'
-};
-

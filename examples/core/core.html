@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="module-info" content="status=complete;attr=#1">
-    <title>系统底层</title>
+    <title>基础工具函数</title>
     
     <!-- 本组件需要以下文件 -->
     <script type="text/javascript" src="../../src/core/core.js"></script>
@@ -14,12 +14,12 @@
 <body>
 
     <article class="demo">
-        <blockquote class="demo demo-info">为浏览器环境扩展一些必要的方法。</blockquote>
+        <blockquote class="demo demo-info">为整个库提供最基础的工具函数，也为浏览器补上缺失的标准函数。</blockquote>
 
         <script>
 
             Demo.writeExamples({
-                'Object 扩展': '-',
+                'Object 对象扩展': '-',
                 'Object.extend': function () {
                     var dest = { a: 1 };
                     var src = { b: 2 };
@@ -27,86 +27,38 @@
 
                     // 此时 dest = {a: 1, b: 2}
                 },
-                'Object.extendIf': function () {
-                    var dest = { a: 1, b: 2 };
-                    var src = { b: 3, c: 4 };
-                    Object.extendIf(dest, src);
-
-                    // 此时 dest = {a: 1, b: 2, c: 4}
-                },
                 'Object.each': function () {
                     var obj = { a: 1, b: 2 };
                     Object.each(obj, function (value, key) {
                         alert(key + ' = ' + value);
                     });
                 },
-                'Object.map': function () {
 
-                    // 功能1: 参数是字符串，将字符串按空格分开后依次遍历。
-                    Object.map("aa bb", function (value, key) {
-                        alert(key + ' = ' + value);
-                    });
-
-                    // 功能2: 相当于原生的 [].map() 。
-                    var result1 = Object.map(["aa", "bb"], function (value, key) {
-                        return value + value;
-                    });  // 返回 ["aaaa","bbbb"]
-
-                    // 功能2: 相当于 [].map() 的 {} 版本。
-                    var result2 = Object.map({ a: "aa", b: "bb" }, function (value, key) {
-                        return value + value;
-                    });  // 返回  {a:"aaaa",b:"bbbb"}
-                },
-
-                'Array 扩展': '-',
-                'Array.isArray': 'Array.isArray([])',
-                'Array#indexOf': '[5,4].indexOf(5)',
-                //'Array#item': function () {
-                //    [5, 4].item(0); // 5
-                //    [5, 4].item(1); // 4
-                //    [5, 4].item(2); // undefined
-                //    [5, 4].item(-1); // 取最后一个, 4
-                //    [5, 4].item(-2); // 5
-                //    [5, 4].item(-3); // undefined
-                //},
-                'Array#forEach': '[5,4].forEach(alert)',
-                'Array#filter': '[5,4].filter(function(v){return v > 4;})',
-
-                'Array#unique': '[2, 5, 7, 5].unique()',
-                'Array#each': '[5,4].each(function(value){alert(value); return false;})',
+                'Array 对象扩展': '-',
                 'Array#remove': 'var ar = [5,4];ar.remove(4); ar',
+                'Array#unique': '[2, 5, 7, 5].unique()',
+                'Array.isArray(原生支持)': 'Array.isArray([])',
+                'Array#indexOf(原生支持)': '[5,4].indexOf(5)',
+                'Array#forEach(原生支持)': '[5,4].forEach(alert)',
 
-                'Function 扩展': '-',
-                'Function#bind': '(function(){alert(this)}).bind(2)()',
+                'Function 对象扩展': '-',
                 'Function.empty': 'Function.empty()',
+                'Function#bind(原生支持)': '(function(){alert(this)}).bind(2)()',
 
-                'String 扩展': '-',
+                'String 对象扩展': '-',
                 'String.format': function () {
                     String.format("{0} {1}", "h", "v"); // "h v",
                     String.format("{a}", { a: 1 }); // "1"
                 },
-                'String#trim': '"      abcd  ".trim()',
-                //'String#capitalize': '"abcd".capitalize()',
-                //'String#toCamelCase': '"font-size".toCamelCase()',
+                'String#trim(原生支持)': '"      abcd  ".trim()',
 
-                'Date 扩展': '-',
-                'Date.now': 'Date.now()',
-
-                'navigator 扩展': '-',
-                '判断指定的浏览器(基于UA)': 'navigator.isIE6',
-                '判断 IE6/7(基于特性)': 'navigator.isIE67',
-                '判断 IE6/7/8(基于特性)': 'navigator.isIE678',
-                //'获取浏览器名字': 'navigator.name',
-                //'获取浏览器版本': 'navigator.version',
-                //'查看全部浏览器信息': 'navigator',
-
-                'JPlus & 全局': '-',
-                'window.execScript': 'window.execScript("alert(\'我是被 execScript 执行的\')")',
-                'JPlus.id': 'JPlus.id++ // 仅仅是一个简单的计数器。',
-                'JPlus.version': 'JPlus.version // 类库的版本。'
+                'Date 对象扩展': '-',
+                'Date.now(原生支持)': 'Date.now()'
             });
 
         </script>
+        
+        <p class="demo demo-note">如果需要更多的扩展函数，可以查看 utils 分类下的组件</p>
 
     </article>
 
