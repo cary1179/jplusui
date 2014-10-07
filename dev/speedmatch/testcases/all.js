@@ -22,7 +22,7 @@ var framewroks = {
 	},
 	'jPlusUI': {
 		js: [
-			'../../../../src/core/base.js',
+			'../../../../src/core/core.js',
 			'../../../../src/core/class.js',
 			'../../../../src/dom/base.js',
 			'../../../../src/dom/jquery-style.js'
