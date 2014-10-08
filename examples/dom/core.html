@@ -41,19 +41,9 @@
                     Dom.query("#all div"); // 找到 CSS 选择器匹配的全部元素。
                     Dom.find("#all div");  // 找到 CSS 选择器匹配的第一个元素。
                     Dom.get("a");          // 根据 ID 获取。
-
-                    Dom.query();           // 返回空对象。
-                    Dom.query(document.getElementById("a")); // 根据原生节点获取。
-                    Dom.query(document.getElementsByTagName("div")); // 根据原生节点列表获取。
-
-                    // Dom.query、Dom.find 和 Dom.get 的区别:
-                    // - Dom.query: 取全部节点，如果取不到则返回空 Dom 对象。
-                    // - Dom.find: 和 Dom.query 的唯一区别是 css 选择器仅返回匹配的第一个元素。
-                    // - Dom.get: 只取一个，如果取不到则返回 null 。
                 },
                 'parse - 解析 HTML 源码生成 Dom 对象': function () {
                     Dom.parse("<div/>");
-                    Dom.parse("<div><div />a<\/div>");
                     Dom.parse("   <div/> f <div/>");
                     Dom.parse("<object />");
                     Dom.parse("<input type=\'radio\' checked=\'checked\'>");
@@ -62,16 +52,14 @@
 
                 //'find - 返回第一个': 'Dom.find(a, "div")',
                 //'query - 返回全部节点': 'Dom.query(a, "div")',
-                'match': 'Dom.match(a, "div")',
+                'matches': 'Dom.matches(a, "div")',
 
                 'DOM ready(DOMReady)': '-',
                 'ready': 'Dom.ready(function(){ alert("DOM 已经 ready（引用的图片未开始加载）") })',
-                'load': 'Dom.load(function(){ alert("DOM 已经 load（引用的图片都已加载）") })',
 
                 '事件(Event)': '-',
-                'on - 绑定事件': 'Dom.on(a, "click", function(){ alert("点击事件") });\r\nDom.on(a, "click", "#c", function(){ alert("委托触发点击事件") });',
-                'un - 解绑事件': 'Dom.un(a, "click")',
-                //'once - 绑定一次性的事件': 'Dom.once(a, "click", function(){ alert("一次性的点击事件（只在第一次点击时发生）") })',
+                'on - 绑定事件': 'Dom.on(a, "click", function(){ alert("点击事件") });',
+                'off - 解绑事件': 'Dom.off(a, "click")',
                 'trigger - 手动触发事件': 'Dom.trigger(a, "click")',
 
                 '类(Class)': '-',
