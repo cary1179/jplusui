@@ -451,23 +451,13 @@ var Dom = {
     // #region 样式和属性
 
     /**
-     * 获取元素的当前样式。
-     * @param {Element} elem 要获取的元素。
-     * @param {String} camelizedCssPropertyName CSS 属性名。格式必须为骆驼格式。
-     * @return {String} 字符串。
-     */
-    getCurrentStyle: function (/*Element*/elem, camelizedCssPropertyName) {
-        return getComputedStyle(elem, '')[camelizedCssPropertyName];
-    },
-
-    /**
      * 读取当前样式为字符串。
      * @param {Element} elem 要获取的元素。
      * @param {String} camelizedCssPropertyName CSS 属性名。格式必须为骆驼格式。
      * @return {String} 字符串。
      */
     styleString: function (/*Element*/elem, camelizedCssPropertyName) {
-        return elem.style[camelizedCssPropertyName] || Dom.getCurrentStyle(camelizedCssPropertyName);
+        return elem.style[camelizedCssPropertyName] || getComputedStyle(elem, '')[camelizedCssPropertyName];
     },
 
     /**
@@ -493,329 +483,513 @@ var Dom = {
     /**
      * 获取指定节点的样式。
      * @param {Element} elem 要获取的元素。
-     * @param {String} CSS 属性名。
+     * @param {String} cssPropertyName CSS 属性名。
      */
     getStyle: function (/*Element*/elem, /*String*/cssPropertyName) {
         return Dom.styleString(elem, Dom.camelCase(cssPropertyName));
     },
 
-// 不需要单位的 css 属性。
-var styleNumbers = {};
-'fillOpacity fontWeight lineHeight opacity orphans widows zIndex columnCount zoom'.replace(/\b\w+\b/g, function (value) {
-    styleNumbers[value] = 1;
-});
+    /**
+     * 设置一个样式属性的值。
+     * @param {String} cssPropertyName CSS 属性名或 CSS 字符串。
+     * @param {String/Number} value CSS属性值， 数字如果不加单位，则会自动添加像素单位。
+     * @return this
+     * @example
+     * 将所有段落的字体颜色设为红色并且背景为蓝色。
+     * <pre>Dom.query("p").setStyle('color', "#ff0011");</pre>
+     */
+    setStyle: function (/*Element*/elem, /*String*/cssPropertyName, value) {
+    
+        // 将属性名转为骆驼形式。
+        cssPropertyName = Dom.camelCase(cssPropertyName);
 
-/**
- * 设置一个样式属性的值。
- * @param {String} name CSS 属性名或 CSS 字符串。
- * @param {String/Number} [value] CSS属性值， 数字如果不加单位，则会自动添加像素单位。
- * @return this
- * @example
- * 将所有段落的字体颜色设为红色并且背景为蓝色。
- * <pre>Dom.query("p").setStyle('color', "#ff0011");</pre>
- */
-    setStyle: function (/*Element*/elem, /*String*/name, value) {
+        // 为数字自动添加 px 单位。
+        if (value != null && value.constructor === Number) {
+            var styleNumbers = Dom.styleNumbers;
+            if (!styleNumbers) {
+                Dom.styleNumbers = styleNumbers = {};
+                'fillOpacity fontWeight lineHeight opacity orphans widows zIndex columnCount zoom'.replace(/\b\w+\b/g, function (value) {
+                    styleNumbers[value] = 1;
+                });
+            }
+            if (!(cssPropertyName in styleNumbers)) {
+                value += 'px';
+            }
+        }
 
-    // 将属性名转为骆驼形式。
-    name = Dom.camelCase(name);
+        elem.style[cssPropertyName] = value;
 
-    // 特殊属性单独设置。
-    if (name in styleHooks) {
-        styleHooks[name].set(elem, value);
-    } else {
+    },
 
-        // 设置样式，为一些数字类型的样式自动追加单位。
-        elem.style[name] = typeof value !== "number" || name in Dom.styleNumbers ? value : (value + "px");
+    /**
+     * 设置一个元素可移动。
+     * @param {Element} elem 要设置的节点。
+     * @static
+     */
+    movable: function (elem) {
+        if (!/^(?:abs|fix)/.test(Dom.styleString(elem, "position")))
+            elem.style.position = "relative";
+    },
 
+    /**
+     * 判断当前元素是否是隐藏的。
+     * @param {Element} elem 要判断的元素。
+     * @return {Boolean} 当前元素已经隐藏返回 true，否则返回  false 。
+     */
+    isHidden: function (/*Element*/elem) {
+        return Dom.styleString(elem, 'display') === 'none';
+    },
+
+    /**
+     * 通过设置 display 属性来显示元素。
+     * @param {Element} elem 元素。
+     * @static
+     */
+    show: function (/*Element*/elem) {
+
+        // 普通元素 设置为 空， 因为我们不知道这个元素本来的 display 是 inline 还是 block
+        elem.style.display = '';
+
+        // 如果元素的 display 仍然为 none , 说明通过 CSS 实现的隐藏。这里默认将元素恢复为 block。
+        if (isHidden(elem)) {
+            var defaultDisplay = elem.style.defaultDisplay;
+            if (!defaultDisplay) {
+                var defaultDisplayCache = Dom.defaultDisplayCache || (Dom.defaultDisplayCache = {});
+                defaultDisplay = defaultDisplayCache[elem.nodeName];
+                if (!defaultDisplay) {
+                    var elem = document.createElement(nodeName);
+                    document.body.appendChild(elem);
+                    defaultDisplay = Dom.styleString(elem);
+                    if (defaultDisplay === 'none') {
+                        defaultDisplay = 'block';
+                    }
+                    defaultDisplayCache[nodeName] = defaultDisplay;
+                    document.body.removeChild(elem);
+                }
+            }
+            elem.style.display = defaultDisplay;
+        }
+
+    },
+
+    /**
+     * 通过设置 display 属性来隐藏元素。
+     * @param {Element} elem 元素。
+     * @static
+     */
+    hide: function (/*Element*/elem) {
+        var currentDisplay = Dom.styleString(elem, 'display');
+        if (currentDisplay !== 'none') {
+            elem.style.defaultDisplay = currentDisplay;
+            elem.style.display = 'none';
+        }
+    },
+
+    /**
+     * 检查是否含指定类名。
+     * @param {Element} elem 要测试的元素。
+     * @param {String} className 类名。
+     * @return {Boolean} 如果存在返回 true。
+     * @static
+     */
+    hasClass: function (/*Element*/elem, className) {
+        // #assert className && (!className.indexOf || !/[\s\r\n]/.test(className)), className 不能为空，且不允许有空格和换行；如果需要判断 2 个 class 同时存在，可以调用两次本函数： if(hasClass('A') && hasClass('B')) ...");
+        return elem.classList.contains(className);
+    },
+
+    /**
+     * 为当前 Dom 对象添加指定的 Css 类名。
+     * @param {String} className 一个或多个要添加到元素中的CSS类名，用空格分开。
+     * @return this
+     * @example
+     * 为匹配的元素加上 'selected' 类。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p").addClass("selected");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello&lt;/p&gt; ]</pre>
+     *
+     * 为匹配的元素加上 selected highlight 类。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p").addClass("selected highlight");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;p class="selected highlight"&gt;Hello&lt;/p&gt; ]</pre>
+     */
+    addClass: function (/*Element*/elem, className) {
+        elem.classList.add(className);
+    },
+
+    /**
+     * 从当前 Dom 对象中删除全部或者指定的类。
+     * @param {String} [className] 一个或多个要删除的CSS类名，用空格分开。如果不提供此参数，将清空 className 。
+     * @return this
+     * @example
+     * 从匹配的元素中删除 'selected' 类
+     * #####HTML:
+     * <pre lang="htm" format="none">
+     * &lt;p class="selected first"&gt;Hello&lt;/p&gt;
+     * </pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p").removeClass("selected");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">
+     * [ &lt;p class="first"&gt;Hello&lt;/p&gt; ]
+     * </pre>
+     */
+    removeClass: function (/*Element*/elem, className) {
+        className ? elem.classList.remove(className) : (elem.className = '');
+    },
+
+    /**
+     * 如果存在（不存在）就删除（添加）一个类。
+     * @param {String} className CSS类名。
+     * @param {Boolean} [toggle] 自定义切换的方式。如果为 true， 则加上类名，否则删除。
+     * @return this
+     * @see #addClass
+     * @see #removeClass
+     * @example
+     * 为匹配的元素切换 'selected' 类
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p class="selected"&gt;Hello Again&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p").toggleClass("selected");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello&lt;/p&gt;, &lt;p&gt;Hello Again&lt;/p&gt; ]</pre>
+     */
+    toggleClass: function (elem, className, value) {
+        elem.classList.toggle(className, value);
+    },
+
+    _fixProp: function (name) {
+        var propFix = Dom.propFix || (Dom.propFix = {
+            'tabindex': 'tabIndex',
+            'readonly': 'readOnly',
+            'for': 'htmlFor',
+            'class': 'className',
+            'maxlength': 'maxLength',
+            'cellspacing': 'cellSpacing',
+            'cellpadding': 'cellPadding',
+            'rowspan': 'rowSpan',
+            'colspan': 'colSpan',
+            'usemap': 'useMap',
+            'frameborder': 'frameBorder',
+            'contenteditable': 'contentEditable'
+        });
+        return propFix[name] || name;
+    },
+
+    /**
+     * 获取元素的属性值。
+     * @param {Element} elem 要获取的元素。
+     * @param {String} name 要获取的属性名称。
+     * @return {String} 返回属性值。如果元素没有相应属性，则返回 null 。
+     * @static
+     */
+    getAttr: function ( /*Element*/elem, name) {
+
+        // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
+
+        name = Dom._fixProp(name);
+
+        // 如果存在钩子，使用钩子获取属性。
+        // 最后使用 defaultHook 获取。
+        return name in elem ? elem[name] : elem.getAttribute(name);
+
+    },
+
+    /**
+     * 设置或删除一个 HTML 属性值。
+     * @param {String} name 要设置的属性名称。
+     * @param {String} value 要设置的属性值。当设置为 null 时，删除此属性。
+     * @return this
+     * @example
+     * 为所有图像设置src属性。
+     * #####HTML:
+     * <pre lang="htm" format="none">
+     * &lt;img/&gt;
+     * &lt;img/&gt;
+     * </pre>
+     * #####JavaScript:
+     * <pre>Dom.query("img").setAttribute("src","test.jpg");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;img src= "test.jpg" /&gt; , &lt;img src= "test.jpg" /&gt; ]</pre>
+     *
+     * 将文档中图像的src属性删除
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;img src="test.jpg"/&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("img").setAttribute("src");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;img /&gt; ]</pre>
+     */
+    setAttr: function (elem, name, value) {
+
+        // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
+
+        name = Dom._fixProp(name);
+
+        if (name in elem) {
+            elem[name] = value;
+        } else if (value === null) {
+            elem.removeAttribute(name);
+        } else {
+            elem.setAttribute(name, value);
+        }
+    },
+    
+    _fixText: function (node) {
+        var textFix = Dom.textFix || (Dom.textFix = {
+            'INPUT': 'value',
+            'SELECT': 'value',
+            'TEXTAREA': 'value',
+            '#text': 'nodeValue',
+            '#comment': 'nodeValue'
+        });
+        return textFix[node.nodeName] || 'textContent';
+    },
+
+    /**
+     * 获取一个元素对应的文本。
+     * @param {Element} node 元素。
+     * @return {String} 值。对普通节点返回 text 属性。
+     * @static
+     */
+    getText: function (/*Element*/node) {
+        return node[Dom._fixText(node)] || '';
+    },
+
+    /**
+     * 设置当前 Dom 对象的文本内容。对于输入框则设置其输入的值。
+     * @param {String} 用于设置元素内容的文本。
+     * @return this
+     * @see #setHtml
+     * @remark 与 {@link #setHtml} 类似, 但将编码 HTML (将 "&lt;" 和 "&gt;" 替换成相应的HTML实体)。
+     * @example
+     * 设定文本框的值。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;input type="text"/&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("input").setText("hello world!");</pre>
+     */
+    setText: function (/*Element*/node, value) {
+        node[Dom._fixText(node)] = value;
+    },
+
+    /**
+     * 获取指定节点的 Html。
+     * @return {String} HTML 字符串。
+     * @example
+     * 获取 id="a" 的节点的内部 html。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;p/&gt;&lt;/div&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.getHtml(document.body);</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">"&lt;p/&gt;"</pre>
+     */
+    getHtml: function (/*Element*/elem) {
+        return elem.innerHTML;
+    },
+
+    /**
+     * 设置指定节点的 Html。
+     * @param {String} value 要设置的 Html。
+     * @example
+     * 设置一个节点的内部 html
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;p/&gt;&lt;/div&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.get("a").setHtml("&lt;a/&gt;");</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;a/&gt;&lt;/div&gt;</pre>
+     */
+    setHtml: function (/*Element*/elem, value) {
+        elem.innerHTML = value;
+    },
+
+    // #endregion
+    
+    // #region 节点定位和尺寸
+
+    /**
+     * 获取当前 Dom 对象的滚动区域大小。
+     * @return {Point} 返回的对象包含两个整型属性：x 和 y。
+     * @remark
+     * getScrollSize 获取的值总是大于或的关于 getSize 的值。
+     * 
+     * 此方法对可见和隐藏元素均有效。
+     */
+    getScrollSize: function (elem) {
+        var ret = null, elem, body;
+
+        if (elem.nodeType === 9) {
+            body = elem.body;
+            elem = elem.documentElement;
+            ret = {
+                x: Math.max(elem.scrollWidth, body.scrollWidth, elem.clientWidth),
+                y: Math.max(elem.scrollHeight, body.scrollHeight, elem.clientHeight)
+            };
+        } else {
+            ret = {
+                x: elem.scrollWidth,
+                y: elem.scrollHeight
+            };
+        }
+
+        return ret;
+    },
+
+    getDocumentScroll: function (doc) {
+        var p, win;
+        if ('pageXOffset' in (win = doc.defaultView || doc.parentWindow)) {
+            p = {
+                x: win.pageXOffset,
+                y: win.pageYOffset
+            };
+        } else {
+            elem = doc.documentElement;
+            p = {
+                x: elem.scrollLeft,
+                y: elem.scrollTop
+            };
+        }
+
+        return p;
+    },
+
+    /**
+     * 获取当前 Dom 对象的相对位置。
+     * @return {Point} 返回的对象包含两个整型属性：x 和 y。
+     * @remark
+     * 此方法只对可见元素有效。
+     * 
+     * 获取匹配元素相对父元素的偏移。
+     * @example
+     * 获取第一段的偏移
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:<pre>
+     * var p = Dom.query("p").item(0);
+     * var offset = p.getOffset();
+     * trace( "left: " + offset.x + ", top: " + offset.y );
+     * </pre>
+     * #####结果:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;left: 15, top: 15&lt;/p&gt;</pre>
+     */
+    getOffset: function (elem) {
+
+        // 如果设置过 left top ，这是非常轻松的事。
+        var left = Dom.styleString(elem, 'left'),
+            top = Dom.styleString(elem, 'top');
+
+        // 如果未设置过。
+        if ((!left || !top || left === 'auto' || top === 'auto') && Dom.styleString(elem, "position") === 'absolute') {
+
+            // 绝对定位需要返回绝对位置。
+            top = Dom.offsetParent(elem);
+            left = Dom.getPosition(elem);
+            if (!/^(?:BODY|HTML|#document)$/i.test(top.nodeName)) {
+                var t = Dom.getPosition(top);
+                left.x -= t.x;
+                lefy.y -= t.y;
+            }
+            left.x -= Dom.styleNumber(elem, 'marginLeft') + Dom.styleNumber(top, 'borderLeftWidth');
+            left.y -= Dom.styleNumber(elem, 'marginTop') + Dom.styleNumber(top, 'borderTopWidth');
+
+            return left;
+        }
+
+        // 碰到 auto ， 空 变为 0 。
+        return {
+            x: parseFloat(left) || 0,
+            y: parseFloat(top) || 0
+        };
+
+    },
+
+    /**
+     * 设置当前 Dom 对象相对父元素的偏移。
+     * @param {Point} value 要设置的 x, y 对象。
+     * @return this
+     * @remark
+     * 此函数仅改变 CSS 中 left 和 top 的值。
+     * 如果当前对象的 position 是static，则此函数无效。
+     * 可以通过 {@link #setPosition} 强制修改 position, 或先调用 {@link Dom.movable} 来更改 position 。
+     *
+     * @example
+     * 设置第一段的偏移。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>
+     * Dom.query("p:first").setOffset({ x: 10, y: 30 });
+     * </pre>
+     * #####结果:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;left: 15, top: 15&lt;/p&gt;</pre>
+     */
+    setOffset: function (elem, value) {
+
+        ////assert(value, "Dom#setOffset(value): {value} 必须有 'x' 和 'y' 属性。", value);
+
+        elem = elem.style;
+
+        if (value.y != null)
+            elem.top = value.y + 'px';
+
+        if (value.x != null)
+            elem.left = value.x + 'px';
+    },
+
+    /**
+     * 获取当前 Dom 对象的滚动条的位置。
+     * @return {Point} 返回的对象包含两个整型属性：x 和 y。
+     * @remark
+     * 此方法对可见和隐藏元素均有效。
+     *
+     * @example
+     * 获取第一段相对滚动条顶部的偏移。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>
+     * var p = Dom.query("p").item(0);
+     * trace( "scrollTop:" + p.getScroll() );
+     * </pre>
+     * #####结果:
+     * <pre lang="htm" format="none">
+     * &lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;scrollTop: 0&lt;/p&gt;
+     * </pre>
+     */
+    getScroll: function (elem) {
+        return elem.nodeType === 9 ? Dom.getDocumentScroll(elem) : {
+            x: elem.scrollLeft,
+            y: elem.scrollTop
+        };
+    },
+
+    /**
+     * 设置当前 Dom 对象的滚动条位置。
+     * @param {Number/Point} x 要设置的水平坐标或一个包含 x、y 属性的对象。如果不设置，使用 null 。
+     * @param {Number} y 要设置的垂直坐标。如果不设置，使用 null 。
+     * @return this
+     */
+    setScroll: function (elem, value) {
+        if (elem.nodeType !== 9) {
+            if (value.x != null) elem.scrollLeft = value.x;
+            if (value.y != null) elem.scrollTop = value.y;
+        } else {
+            var scroll = Dom.getDocumentScroll(elem);
+            if (value.x == null)
+                value.x = scroll.x;
+            if (value.y == null)
+                value.y = scroll.y;
+            (elem.defaultView || elem.parentWindow).scrollTo(value.x, value.y);
+        }
     }
-};
 
-/**
- * 设置一个元素可移动。
- * @param {Element} elem 要设置的节点。
- * @static
- */
-Dom.movable = function (elem) {
-    if (!/^(?:abs|fix)/.test(getCurrentStyle(elem, "position")))
-        elem.style.position = "relative";
-};
-
-/**
- * 判断当前元素是否是隐藏的。
- * @param {Element} elem 要判断的元素。
- * @return {Boolean} 当前元素已经隐藏返回 true，否则返回  false 。
- */
-Dom.isHidden = function (/*Element*/elem) {
-    return getCurrentStyle(elem, 'display') === 'none';
-};
-
-var defaultDisplayCache = {};
-
-/**
- * 获取一个标签的默认 display 属性。
- * @param {Element} elem 元素。
- */
-function defaultDisplay(nodeName) {
-    if (!defaultDisplayCache[nodeName]) {
-        var elem = document.createElement(nodeName);
-        document.body.appendChild(elem);
-        var display = getCurrentStyle(elem);
-        elem.parentNode.removeChild(elem);
-        defaultDisplayCache[nodeName] = display === "none" ? "block" : display;
-    }
-    return defaultDisplayCache[nodeName];
-}
-
-/**
- * 通过设置 display 属性来显示元素。
- * @param {Element} elem 元素。
- * @static
- */
-Dom.show = function (/*Element*/elem) {
-
-    // 普通元素 设置为 空， 因为我们不知道这个元素本来的 display 是 inline 还是 block
-    elem.style.display = '';
-
-    // 如果元素的 display 仍然为 none , 说明通过 CSS 实现的隐藏。这里默认将元素恢复为 block。
-    if (getCurrentStyle(elem, 'display') === 'none')
-        elem.style.display = elem.style.defaultDisplay || Dom.defaultDisplay(elem);
-};
-
-/**
- * 通过设置 display 属性来隐藏元素。
- * @param {Element} elem 元素。
- * @static
- */
-Dom.hide = function (/*Element*/elem) {
-    var currentDisplay = Dom.styleString(elem, 'display');
-    if (currentDisplay !== 'none') {
-        elem.style.defaultDisplay = currentDisplay;
-        elem.style.display = 'none';
-    }
-};
-
-/**
- * 检查是否含指定类名。
- * @param {Element} elem 要测试的元素。
- * @param {String} className 类名。
- * @return {Boolean} 如果存在返回 true。
- * @static
- */
-Dom.hasClass = function (/*Element*/elem, className) {
-    // #assert className && (!className.indexOf || !/[\s\r\n]/.test(className)), className 不能为空，且不允许有空格和换行；如果需要判断 2 个 class 同时存在，可以调用两次本函数： if(hasClass('A') && hasClass('B')) ...");
-    return elem.classList.contains(className);
-};
-
-/**
- * 为当前 Dom 对象添加指定的 Css 类名。
- * @param {String} className 一个或多个要添加到元素中的CSS类名，用空格分开。
- * @return this
- * @example
- * 为匹配的元素加上 'selected' 类。
- * #####HTML:
- * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.query("p").addClass("selected");</pre>
- * #####结果:
- * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello&lt;/p&gt; ]</pre>
- *
- * 为匹配的元素加上 selected highlight 类。
- * #####HTML:
- * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.query("p").addClass("selected highlight");</pre>
- * #####结果:
- * <pre lang="htm" format="none">[ &lt;p class="selected highlight"&gt;Hello&lt;/p&gt; ]</pre>
- */
-Dom.addClass = function (/*Element*/elem, className) {
-    elem.classList.add(className);
-};
-
-/**
- * 从当前 Dom 对象中删除全部或者指定的类。
- * @param {String} [className] 一个或多个要删除的CSS类名，用空格分开。如果不提供此参数，将清空 className 。
- * @return this
- * @example
- * 从匹配的元素中删除 'selected' 类
- * #####HTML:
- * <pre lang="htm" format="none">
- * &lt;p class="selected first"&gt;Hello&lt;/p&gt;
- * </pre>
- * #####JavaScript:
- * <pre>Dom.query("p").removeClass("selected");</pre>
- * #####结果:
- * <pre lang="htm" format="none">
- * [ &lt;p class="first"&gt;Hello&lt;/p&gt; ]
- * </pre>
- */
-Dom.removeClass = function (/*Element*/elem, className) {
-    className ? elem.classList.remove(className) : (elem.className = '');
-};
-
-/**
- * 如果存在（不存在）就删除（添加）一个类。
- * @param {String} className CSS类名。
- * @param {Boolean} [toggle] 自定义切换的方式。如果为 true， 则加上类名，否则删除。
- * @return this
- * @see #addClass
- * @see #removeClass
- * @example
- * 为匹配的元素切换 'selected' 类
- * #####HTML:
- * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p class="selected"&gt;Hello Again&lt;/p&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.query("p").toggleClass("selected");</pre>
- * #####结果:
- * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello&lt;/p&gt;, &lt;p&gt;Hello Again&lt;/p&gt; ]</pre>
- */
-Dom.toggleClass = function (elem, className, value) {
-    elem.classList.toggle(className, value);
-};
-
-var propFix = {
-    'tabindex': 'tabIndex',
-    'readonly': 'readOnly',
-    'for': 'htmlFor',
-    'class': 'className',
-    'maxlength': 'maxLength',
-    'cellspacing': 'cellSpacing',
-    'cellpadding': 'cellPadding',
-    'rowspan': 'rowSpan',
-    'colspan': 'colSpan',
-    'usemap': 'useMap',
-    'frameborder': 'frameBorder',
-    'contenteditable': 'contentEditable'
-};
-
-/**
- * 获取元素的属性值。
- * @param {Element} elem 要获取的元素。
- * @param {String} name 要获取的属性名称。
- * @return {String} 返回属性值。如果元素没有相应属性，则返回 null 。
- * @static
- */
-Dom.getAttr = function ( /*Element*/elem, name) {
-
-    // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
-
-    name = propFix[name] || name;
-
-    // 如果存在钩子，使用钩子获取属性。
-    // 最后使用 defaultHook 获取。
-    return name in elem ? elem[name] : elem.getAttribute(name);
-
-};
-
-/**
- * 设置或删除一个 HTML 属性值。
- * @param {String} name 要设置的属性名称。
- * @param {String} value 要设置的属性值。当设置为 null 时，删除此属性。
- * @return this
- * @example
- * 为所有图像设置src属性。
- * #####HTML:
- * <pre lang="htm" format="none">
- * &lt;img/&gt;
- * &lt;img/&gt;
- * </pre>
- * #####JavaScript:
- * <pre>Dom.query("img").setAttribute("src","test.jpg");</pre>
- * #####结果:
- * <pre lang="htm" format="none">[ &lt;img src= "test.jpg" /&gt; , &lt;img src= "test.jpg" /&gt; ]</pre>
- *
- * 将文档中图像的src属性删除
- * #####HTML:
- * <pre lang="htm" format="none">&lt;img src="test.jpg"/&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.query("img").setAttribute("src");</pre>
- * #####结果:
- * <pre lang="htm" format="none">[ &lt;img /&gt; ]</pre>
- */
-Dom.setAttr = function (elem, name, value) {
-
-    // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
-
-    name = propFix[name] || name;
-
-    if (name in elem) {
-        elem[name] = value;
-    } else if (value === null) {
-        elem.removeAttribute(name);
-    } else {
-        elem.setAttribute(name, value);
-    }
-};
-
-/**
- * 获取文本时应使用的属性值。
- * @private
- * @static
- */
-var textFix = {};
-textFix.INPUT = textFix.SELECT = textFix.TEXTAREA = 'value';
-textFix['#text'] = textFix['#comment'] = 'nodeValue';
-
-/**
- * 获取一个元素对应的文本。
- * @param {Element} node 元素。
- * @return {String} 值。对普通节点返回 text 属性。
- * @static
- */
-Dom.getText = function (/*Element*/node) {
-    return node[textFix[node.nodeName] || 'textContent'] || '';
-};
-
-/**
- * 设置当前 Dom 对象的文本内容。对于输入框则设置其输入的值。
- * @param {String} 用于设置元素内容的文本。
- * @return this
- * @see #setHtml
- * @remark 与 {@link #setHtml} 类似, 但将编码 HTML (将 "&lt;" 和 "&gt;" 替换成相应的HTML实体)。
- * @example
- * 设定文本框的值。
- * #####HTML:
- * <pre lang="htm" format="none">&lt;input type="text"/&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.query("input").setText("hello world!");</pre>
- */
-Dom.setText = function (/*Element*/node, value) {
-    node[textFix[node.nodeName] || 'textContent'] = value;
-};
-
-/**
- * 获取指定节点的 Html。
- * @return {String} HTML 字符串。
- * @example
- * 获取 id="a" 的节点的内部 html。
- * #####HTML:
- * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;p/&gt;&lt;/div&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.getHtml(document.body);</pre>
- * #####结果:
- * <pre lang="htm" format="none">"&lt;p/&gt;"</pre>
- */
-Dom.getHtml = function (/*Element*/elem) {
-    return elem.innerHTML;
-};
-
-/**
- * 设置指定节点的 Html。
- * @param {String} value 要设置的 Html。
- * @example
- * 设置一个节点的内部 html
- * #####HTML:
- * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;p/&gt;&lt;/div&gt;</pre>
- * #####JavaScript:
- * <pre>Dom.get("a").setHtml("&lt;a/&gt;");</pre>
- * #####结果:
- * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;a/&gt;&lt;/div&gt;</pre>
- */
-Dom.setHtml = function (/*Element*/elem, value) {
-    elem.innerHTML = value;
-};
-
-// #endregion
-
-
+    // #endregion
 
 };
