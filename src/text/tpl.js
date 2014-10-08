@@ -96,17 +96,8 @@ var Tpl = {
 
     _compile: function (/*String*/tplSource) {
 
-        // #region 词法分析
-
-        function getSource(start, end) {
-            return tplSource.substring(start, end).replace(/([{}])\1/g, '$1');
-        }
-
-        // parts = [字符串1, 代码块1, 字符串2, 代码块2, ...]
-        var parts = [],
-
-            // 存储已编译的代码段。
-            compiledCode = 'var $parts=arguments.callee.$parts,$output=""\n',
+        // 存储已编译的代码段。
+        var compiledCode = 'var $output=""\n',
 
             // 下一个 { 的开始位置。
             blockStart = -1,
@@ -126,6 +117,10 @@ var Tpl = {
             // 标准命令。
             subCommands;
 
+        function getSource(start, end) {
+            return tplSource.substring(start, end).replace(/([{}])\1/g, '$1');
+        }
+
         while ((blockStart = tplSource.indexOf('{', blockStart + 1)) >= 0) {
 
             // 忽略 {{。
@@ -135,9 +130,8 @@ var Tpl = {
             }
 
             // 处理 { 之前的内容。
-            compiledCode += '$output+=$parts[' + parts.length + ']\n';
-            parts.push(getSource(blockEnd + 1, blockStart));
-
+            compiledCode += '$output+="' + getSource(blockEnd + 1, blockStart).replace(/[\r\n\"\\]/g, Tpl._replaceSpecialChars) + '"\n';
+         
             // 从  blockStart 处搜索 }
             blockEnd = blockStart;
 
@@ -167,7 +161,7 @@ var Tpl = {
                 switch (stdCommands[1]) {
                     case 'end':
                         if (!commandStack.length) {
-                            throw new SyntaxError("发现多余的{end}\r\n在“" + parts[parts.length - 1] + "”附近")
+                            throw new SyntaxError("发现多余的{end}\r\n在“" + getSource(blockStart - 20, blockStart) + "”附近")
                         }
                         compiledCode += commandStack.pop() === 'foreach' ? '},this)\n' : '}\n';
                         break;
@@ -212,29 +206,30 @@ var Tpl = {
         }
 
         // 处理 } 之后的内容。
-        compiledCode += '$output+=$parts[' + parts.length + ']\nreturn $output';
-        parts.push(getSource(blockEnd + 1, tplSource.length));
+        compiledCode += '$output+="' + getSource(blockEnd + 1, tplSource.length).replace(/[\r\n\"\\]/g, Tpl._replaceSpecialChars) + '"\nreturn $output';
 
-        // #endregion
-
-        // #region 返回函数
-        console.log(compiledCode);
         try {
             if (commandStack.length) {
                 throw new SyntaxError("缺少 " + commandStack.length + " 个 {end}");
             }
-            compiledCode = new Function("$data", compiledCode);
+            return new Function("$data", compiledCode);
         } catch (e) {
             var message = e.message;
             message += '\r\n源码：' + compiledCode;
             throw new SyntaxError(message);
         }
 
-        compiledCode.$parts = parts;
-        return compiledCode;
+    },
 
-        // #endregion
+    _specialChars: {
+        '"': '\\"',
+        '\n': '\\n',
+        '\r': '\\r',
+        '\\': '\\\\'
+    },
 
+    _replaceSpecialChars: function (specialChar) {
+        return Tpl._specialChars[specialChar];
     }
 
 };
