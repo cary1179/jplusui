@@ -6,7 +6,7 @@
 	
 	
 	
-namespace(".DelayedTask", JPlus.Class({
+namespace(".DelayedTask", JPlus.Base.extend({
 	
 	constructor: function(fn, scope, args) {
 		var id = null, d, t;

@@ -5,7 +5,7 @@
 
 //#include ui/suggest/combobox.js
 
-var CityChooser = Class({
+var CityChooser = Base.extend({
 
     constructor: function (provinces, cities) {
 

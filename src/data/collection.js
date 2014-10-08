@@ -10,7 +10,7 @@
  * 集合。
  * @class Collection
  */
-var Collection = Class({
+var Collection = Base.extend({
 	
 	/**
 	 * 获取当前的项数目。

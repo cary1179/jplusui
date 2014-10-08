@@ -33,7 +33,7 @@ var Dom = (function($){
 		 */
 		dp = Dom.prototype = $.prototype;
 
-	extend(Dom, Class.Base);
+	extend(Dom, Base.extend.Base);
 
 	dp.item = function (index) {
 		var node = this[index < 0 ? this.length + index : index];

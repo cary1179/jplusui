@@ -13,7 +13,7 @@ var Droppable = (function(){
 		
 		dp = Draggable.prototype,
 		
-		Droppable = Class({
+		Droppable = Base.extend({
 		
 		    raiseEvent: function (eventName, draggable, e) {
 		        e.draggable = draggable;

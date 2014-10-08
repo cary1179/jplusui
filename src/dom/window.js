@@ -9,7 +9,7 @@
     /// 窗口
     /// </summary>
     /// <class name="Window" />
-    p.Window = p.Class({
+    p.Window = p.Base.extend({
 
         constructor: function(w) {
 		

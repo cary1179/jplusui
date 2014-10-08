@@ -6,7 +6,7 @@
 //#include fx/animate.js
 //#include dom/base.js
 
-var Marquee = Class({
+var Marquee = Base.extend({
 
 	/**
 	 * 每次滚动的效果时间。

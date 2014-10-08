@@ -3,7 +3,7 @@
  * 委托。
  * @class Delegate
  */
-var Delegate = Class({
+var Delegate = Base.extend({
 	
 	/**
 	 * 初始化一个委托。

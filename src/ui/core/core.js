@@ -17,7 +17,7 @@
  * attach - 添加控件对应的节点到 DOM 树。不建议重写，如果一个控件封装了多个 DOM 节点则需重写本函数。
  * detach - 删除控件对应的节点。不建议重写，如果一个控件封装了多个 DOM 节点则需重写本函数。
  */
-var Control = Class({
+var Control = Base.extend({
 
     /**
 	 * 当前 UI 组件对应的原生节点。

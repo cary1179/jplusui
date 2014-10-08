@@ -2027,7 +2027,7 @@ var Dom = (function () {
     /**
 	 * DOM 事件。
 	 */
-    Dom.Event = Class({
+    Dom.Event = Base.extend({
 
         /**
 		 * 构造函数。
@@ -2426,7 +2426,7 @@ var Dom = (function () {
 
     //#endregion
 
-    //#region Class
+    //#region Base.extend
 
     /**
      * 检查是否含指定类名。
@@ -3558,7 +3558,7 @@ var Dom = (function () {
      */
     var domReady = 'DOMContentLoaded';
 
-    Dom.global = new Class.Base();
+    Dom.global = new Base.extend.Base();
 
     if (isIE678) {
 

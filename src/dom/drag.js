@@ -7,7 +7,7 @@
 /**
  * 处理用户拖动操作的类。
  */
-var Draggable = Class({
+var Draggable = Base.extend({
 
     /**
      * 从鼠标按下到开始拖动的延时。

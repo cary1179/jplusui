@@ -6,7 +6,7 @@
 /**
  * 验证一个字段的工具。
  */
-var Validator = Class({
+var Validator = Base.extend({
 	
 	elem: null,
 

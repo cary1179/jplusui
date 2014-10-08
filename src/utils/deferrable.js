@@ -8,7 +8,7 @@
  * 用于异步执行任务时保证任务是串行的。
  * @class Deferrable
  */
-var Deferrable = Class({
+var Deferrable = Base.extend({
 
 	/**
 	 * 让 *deferrable* 等待当前任务完成后继续执行。

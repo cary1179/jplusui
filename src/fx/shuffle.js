@@ -9,7 +9,7 @@
 
 
 
-namespace(".Fx.Shuffle", Class({
+namespace(".Fx.Shuffle", Base.extend({
 	
 	/**
 	 * 初始化容器。
