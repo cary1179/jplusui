@@ -1,14 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="module-info" content="status=complete" />
     <title>jQuery 适配器</title>
 
-    <script type="text/javascript" src="../../src/jquery/jquery-1.9.1.js"></script>
+    <!-- 本组件需要以下文件 -->
+    <script type="text/javascript" src="../../src/3rdlib/jquery-1.11.1.js"></script>
     <script type="text/javascript" src="../../src/core/core.js"></script>
     <script type="text/javascript" src="../../src/core/class.js"></script>
     <script type="text/javascript" src="../../src/dom/jquery-adapter.js"></script>
+    <!-- 本组件需要以上文件 -->
 
     <script type="text/javascript" src="../../apps/demo/demo.js"></script>
 </head>
@@ -16,7 +18,7 @@
 
     <article class="demo">
 
-        <blockquote class="demo demo-info">DOM 底层模块，定义 Dom 对象。如果需要链式操作 DOM, 参考 <a href="jquery-style.html" class="demo">jquery-style</a> 组件。</blockquote>
+        <blockquote class="demo demo-info">本组件通过 7K 代码（未压缩）让所有 UI 组件可以兼容 jQuery。</blockquote>
 
         <div id="all" class="demo-sample">
             <div id="a" style="background: #DCDCDC; margin: 4px; padding: 8px;">
@@ -40,19 +42,9 @@
                     Dom.query("#all div"); // 找到 CSS 选择器匹配的全部元素。
                     Dom.find("#all div");  // 找到 CSS 选择器匹配的第一个元素。
                     Dom.get("a");          // 根据 ID 获取。
-
-                    Dom.query();           // 返回空对象。
-                    Dom.query(document.getElementById("a")); // 根据原生节点获取。
-                    Dom.query(document.getElementsByTagName("div")); // 根据原生节点列表获取。
-
-                    // Dom.query、Dom.find 和 Dom.get 的区别:
-                    // - Dom.query: 取全部节点，如果取不到则返回空 Dom 对象。
-                    // - Dom.find: 和 Dom.query 的唯一区别是 css 选择器仅返回匹配的第一个元素。
-                    // - Dom.get: 只取一个，如果取不到则返回 null 。
                 },
                 'parse - 解析 HTML 源码生成 Dom 对象': function () {
                     Dom.parse("<div/>");
-                    Dom.parse("<div><div />a<\/div>");
                     Dom.parse("   <div/> f <div/>");
                     Dom.parse("<object />");
                     Dom.parse("<input type=\'radio\' checked=\'checked\'>");
@@ -61,16 +53,14 @@
 
                 //'find - 返回第一个': 'Dom.find(a, "div")',
                 //'query - 返回全部节点': 'Dom.query(a, "div")',
-                'match': 'Dom.match(a, "div")',
+                'matches': 'Dom.matches(a, "div")',
 
                 'DOM ready(DOMReady)': '-',
                 'ready': 'Dom.ready(function(){ alert("DOM 已经 ready（引用的图片未开始加载）") })',
-                'load': 'Dom.load(function(){ alert("DOM 已经 load（引用的图片都已加载）") })',
 
                 '事件(Event)': '-',
-                'on - 绑定事件': 'Dom.on(a, "click", function(){ alert("点击事件") });\r\nDom.on(a, "click", "#c", function(){ alert("委托触发点击事件") });',
-                'un - 解绑事件': 'Dom.un(a, "click")',
-                //'once - 绑定一次性的事件': 'Dom.once(a, "click", function(){ alert("一次性的点击事件（只在第一次点击时发生）") })',
+                'on - 绑定事件': 'Dom.on(a, "click", function(){ alert("点击事件") });',
+                'off - 解绑事件': 'Dom.off(a, "click")',
                 'trigger - 手动触发事件': 'Dom.trigger(a, "click")',
 
                 '类(Class)': '-',
@@ -95,7 +85,6 @@
                 'getText': 'Dom.getText(c)',
                 'setHtml': 'Dom.setHtml(c, "cv")',
                 'getHtml': 'Dom.getHtml(c)',
-                //'set': 'c.set({"innerHTML": "cv"})',
 
                 '处理(Manipulation)': '-',
                 'contains': 'Dom.contains(a, b)',
@@ -104,42 +93,22 @@
                 'prepend': 'Dom.prepend(a, "prepend")',
                 'after': 'Dom.after(a, "after")',
                 'before': 'Dom.before(a, "before")',
-                //'appendTo': 'Dom.appendTo(a, document.body)',
 
-                'isEmpty': 'Dom.isEmpty(c)',
-                'empty': 'Dom.empty(c)',
                 'remove': 'Dom.remove(c)',
-                'dispose': 'Dom.dispose(c)',
-
-                //'replaceWith': 'Dom.replaceWith(d, "<div/>")',
-
-                //'insertBefore': 'Dom.insertBefore(b,c, null)',
-                //'attach': 'd.attach(c.node, null)',
-                //'removeChild': 'Dom.removeChild(b,c)',
-                //'detach': 'd.detach(c.node)',
 
                 '转移(Traversing)': '-',
                 'closest': 'Dom.closest(b,"div")',
                 'parent': 'Dom.parent(b)',
                 'prev': 'Dom.prev(b)',
                 'next': 'Dom.next(b)',
-                'child': 'Dom.child(b,0)',
                 'first': 'Dom.first(b)',
                 'last': 'Dom.last(b)',
-                'parents': 'Dom.parents(b)',
-                'prevAll': 'Dom.prevAll(b)',
-                'nextAll': 'Dom.nextAll(b)',
-                //'siblings': 'Dom.siblings(b)',
                 'children': 'Dom.children(b)',
                 'clone': 'Dom.clone(a)',
 
                 '尺寸(Dimension)': '-',
                 'getSize - 获取带 padding 和 border 的尺寸': 'Dom.getSize(a)',
                 'setSize': 'Dom.setSize(a, {y: 300})',
-                'getWidth - 获取不带 padding 和 border 的宽': 'Dom.getWidth(a)',
-                'setWidth': 'Dom.setWidth(a, 23)',
-                'getHeight - 获取不带 padding 和 border 的高': 'Dom.getHeight(a)',
-                'setHeight': 'Dom.setHeight(a, 54)',
                 'getScrollSize': 'Dom.getScrollSize(a)',
 
                 '位置(Offset)': '-',
@@ -149,13 +118,12 @@
                 'getPosition - 获取在整个窗口的绝对位置': 'Dom.getPosition(a)',
                 'setPosition': 'Dom.setPosition(a, {x:2, y:5})',
                 'getScroll': 'Dom.getScroll(a)',
-
-                'Dom 对象': '-',
-                'add': 'Dom.query(b).add("div")'
+                'getScroll': 'Dom.setScroll(a, {x:2, y:5})',
 
             });
 
         </script>
+
 
         <blockquote class="demo">在没有冲突的情况下， Dom.query 可简写为 $</blockquote>
 

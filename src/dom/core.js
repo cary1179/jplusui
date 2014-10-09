@@ -129,11 +129,67 @@ var Dom = {
      * @return {Element} 返回包含所有已解析的节点的 DOM 对象。
      * @static
      */
-    parse: function (/*String*/html, context) {
+    parse: function (html, context) {
         if (typeof html !== 'object') {
+            var tag = /^\s*<(\w+)[^>]*>/.exec(html),
+                wrapDeep = 1;
+            if (tag) {
+                var parseFix = Dom._parseFix;
+                if (!parseFix) {
+                    Dom._parseFix = parseFix = {
+                        option: [2, '<select multiple="multiple">', '</select>'],
+                        legend: [2, '<fieldset>', '</fieldset>'],
+                        thead: [2, '<table>', '</table>'],
+                        tr: [3, '<table><tbody>', '</tbody></table>'],
+                        td: [4, '<table><tbody><tr>', '</tr></tbody></table>'],
+                        col: [4, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
+                        area: [2, '<map>', '</map>']
+                    };
+                    parseFix.optgroup = parseFix.option;
+                    parseFix.tbody = parseFix.tfoot = parseFix.colgroup = parseFix.caption = parseFix.thead;
+                    parseFix.th = parseFix.td;
+                }
+
+                tag = parseFix[tag[1].toLowerCase()]
+
+                // #if CompactMode
+
+                // IE6-8: 需要填充前缀文本确保单闭合标签正确解析。
+                || (!+"\v1" && [2, '$<div>', '</div>'])
+
+                // #endif
+
+                ;
+
+                if (tag) {
+                    wrapDeep = tag[0];
+                    html = tag[1] + html + tag[2];
+                }
+
+            }
+
             context = context && context !== document ? context.createElement('div') : (Dom._parseContainer || (Dom._parseContainer = document.createElement('div')));
             context.innerHTML = html;
-            html = context.firstChild;
+
+            // #if CompactMode
+
+            // IE67: 如果节点未添加到文档。需要重置 checkbox 的 checked 属性。
+            if (!+"\v1") {
+                Object.each(div.getElementsByTagName('INPUT'), function (elem) {
+                    if (/^(?:checkbox|radio)$/.test(elem.type)) {
+                        elem.checked = elem.defaultChecked;
+                    }
+                });
+            }
+
+            // #endif
+
+            // 遍历到正确的子级。
+            html = context;
+            while (wrapDeep--) {
+                html = html.lastChild;
+            }
+
         }
         return html;
     },
@@ -510,7 +566,7 @@ var Dom = {
      * @return {String} 返回属性值。如果元素没有相应属性，则返回 null 。
      * @static
      */
-    getAttr: function ( /*Element*/elem, name) {
+    getAttr: function (/*Element*/elem, name) {
 
         // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
 
@@ -559,6 +615,18 @@ var Dom = {
         } else {
             elem.setAttribute(name, value);
         }
+    },
+
+    getProp: function (/*Element*/elem, name) {
+
+
+
+        return elem[name];
+    },
+
+    setProp: function (/*Element*/elem, name, value) {
+
+        elem[name] = value;
     },
 
     _fixText: function (node) {
@@ -844,6 +912,16 @@ var Dom = {
         }
     },
 
+    /**
+     * 通过设置 display 属性切换显示或隐藏元素。
+     * @param {Element} elem 要处理的元素。
+     * @param {Boolean?} value 要设置的元素。
+     * @static
+     */
+    toggle: function (/*Element*/elem, value) {
+        (value == null ? Dom.isHidden(elem) : value) ? Dom.show(elem) : Dom.hide(elem);
+    },
+
     // #endregion
     
     // #region 定位和尺寸
@@ -857,7 +935,7 @@ var Dom = {
 	 */
     calc: function (/*Element*/elem, expression) {
         var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, null);
-        return eval(expression.replace(/(\w+)/g, '(parseFloat(computedStyle["$1"])||0)'))
+        return eval(expression.replace(/(\w+)/g, '(parseFloat(computedStyle.$1)||0)'))
     },
 
     /**
