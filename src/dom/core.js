@@ -273,6 +273,20 @@ var Dom = {
      * @static
      */
     contains: function (/*Node*/node, /*Node*/child) {
+
+        // #if CompactMode
+
+        if (!node.contains) {
+            while (child) {
+                if (node === child)
+                    return true;
+                child = child.parentNode;
+            }
+            return false;
+        }
+
+        // #endif
+
         return node.contains(child);
     },
 
@@ -711,7 +725,16 @@ var Dom = {
     },
 
     /**
-     * 清空指定节点。
+     * 删除指定节点的所有子节点。
+     * @return this
+     * @example
+     * 把所有段落的子元素（包括文本节点）删除。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello, &lt;span&gt;Person&lt;/span&gt; &lt;a href="#"&gt;and person&lt;/a&gt;&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p").empty();</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">&lt;p&gt;&lt;/p&gt;</pre>
      */
     empty: function (elem) {
         elem.innerHTML = '';
@@ -843,6 +866,47 @@ var Dom = {
      * @return {String} 字符串。
      */
     styleString: function (/*Element*/elem, camelizedCssPropertyName) {
+
+        // #if CompactMode
+
+        if (!window.getComputedStyle) {
+            if (camelizedCssPropertyName === 'width') {
+                return elem.offsetWidth === 0 ? 'auto' : elem.offsetWidth - Dom.calc(elem, 'borderTopWidth+borderBottomWidth+paddingLeft+paddingRight') + 'px';
+            }
+            if (camelizedCssPropertyName === 'height') {
+                return elem.offsetHeight === 0 ? 'auto' : elem.offsetHeight - Dom.calc(elem, 'borderLeftWidth+borderRightWidth+paddingLeft+paddingRight') + 'px';
+            }
+            if (camelizedCssPropertyName === 'opacity') {
+                return /opacity=([^)]*)/.test(Dom.styleString(elem, 'filter')) ? parseInt(RegExp.$1) / 100 + '' : '1';
+            }
+
+            // currentStyle：IE的样式获取方法,runtimeStyle是获取运行时期的样式。
+            // currentStyle是运行时期样式与style属性覆盖之后的样式
+            var r = elem.currentStyle[name];
+
+            // 来自 jQuery
+            // 如果返回值不是一个带px的 数字。 转换为像素单位
+            if (/^-?\d/.test(r) && !/^-?\d+(?:px)?$/i.test(r)) {
+
+                // 保存初始值
+                var style = elem.style, left = style.left, rsLeft = elem.runtimeStyle.left;
+
+                // 放入值来计算
+                elem.runtimeStyle.left = elem.currentStyle.left;
+                style.left = name === "fontSize" ? "1em" : (r || 0);
+                r = style.pixelLeft + "px";
+
+                // 回到初始值
+                style.left = left;
+                elem.runtimeStyle.left = rsLeft;
+
+            }
+
+            return r;
+        }
+
+        // #endif
+
         return elem.style[camelizedCssPropertyName] || elem.ownerDocument.defaultView.getComputedStyle(elem, '')[camelizedCssPropertyName];
     },
 
@@ -853,6 +917,15 @@ var Dom = {
      * @return {Number} 数值。
      */
     styleNumber: function (/*Element*/elem, camelizedCssPropertyName) {
+        
+        // #if CompactMode
+
+        if (!window.getComputedStyle) {
+            return parseFloat(Dom.styleString(elem, camelizedCssPropertyName));
+        }
+
+        // #endif
+
         var value = elem.style[camelizedCssPropertyName];
         return value && (value = parseFloat(value)) != null ? value : (parseFloat(elem.ownerDocument.defaultView.getComputedStyle(elem, '')[camelizedCssPropertyName]) || 0);
     },
@@ -863,7 +936,7 @@ var Dom = {
      * @return {String} 返回的内容。
      */
     camelCase: function (name) {
-        return name.replace(/-+(\w?)/g, function (match, chr) { return chr.toUpperCase() });
+        return name === 'float' ? +"\v" ? 'cssFloat' : 'styleFloat' : name.replace(/-+(\w?)/g, function (match, chr) { return chr.toUpperCase() });
     },
 
     /**
@@ -994,8 +1067,17 @@ var Dom = {
 	 * @static
 	 */
     calc: function (/*Element*/elem, expression) {
+
+        // #if CompactMode
+
+        if (!window.getComputedStyle) {
+            return eval(expression.replace(/(\w+)/g, 'Dom.styleNumber(elem, "$1")'));
+        }
+
+        // #endif
+
         var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, null);
-        return eval(expression.replace(/(\w+)/g, '(parseFloat(computedStyle.$1)||0)'))
+        return eval(expression.replace(/(\w+)/g, '(parseFloat(computedStyle.$1)||0)'));
     },
 
     /**
@@ -1336,6 +1418,13 @@ if (!('firstElementChild' in document)) {
     };
 
 }
+
+// #endregion
+
+// #region 事件
+
+
+
 
 // #endregion
 
