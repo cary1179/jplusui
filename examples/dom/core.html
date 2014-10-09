@@ -100,23 +100,14 @@
                 'parent': 'Dom.parent(b)',
                 'prev': 'Dom.prev(b)',
                 'next': 'Dom.next(b)',
-                'child': 'Dom.child(b,0)',
                 'first': 'Dom.first(b)',
                 'last': 'Dom.last(b)',
-                'parents': 'Dom.parents(b)',
-                'prevAll': 'Dom.prevAll(b)',
-                'nextAll': 'Dom.nextAll(b)',
-                //'siblings': 'Dom.siblings(b)',
                 'children': 'Dom.children(b)',
                 'clone': 'Dom.clone(a)',
 
                 '尺寸(Dimension)': '-',
                 'getSize - 获取带 padding 和 border 的尺寸': 'Dom.getSize(a)',
                 'setSize': 'Dom.setSize(a, {y: 300})',
-                'getWidth - 获取不带 padding 和 border 的宽': 'Dom.getWidth(a)',
-                'setWidth': 'Dom.setWidth(a, 23)',
-                'getHeight - 获取不带 padding 和 border 的高': 'Dom.getHeight(a)',
-                'setHeight': 'Dom.setHeight(a, 54)',
                 'getScrollSize': 'Dom.getScrollSize(a)',
 
                 '位置(Offset)': '-',
@@ -127,9 +118,6 @@
                 'setPosition': 'Dom.setPosition(a, {x:2, y:5})',
                 'getScroll': 'Dom.getScroll(a)',
                 'getScroll': 'Dom.setScroll(a, {x:2, y:5})',
-
-                'Dom 对象': '-',
-                'add': 'Dom.query(b).add("div")'
 
             });
 
@@ -156,7 +144,7 @@
                 '[attr$=val]': 'Dom.query("[attr$=val]")',
                 '[attr~=val]': 'Dom.query("[attr~=val]")',
                 '[attr|=val]': 'Dom.query("[attr|=val]")',
-                '[attr!=val]': 'Dom.query("[attr!=val]")',
+                //'[attr!=val]': 'Dom.query("[attr!=val]")',
                 '[attr*=val]': 'Dom.query("[attr*=val]")',
 
                 '#id div': 'Dom.query("#b div")',
@@ -166,24 +154,24 @@
 
                 ':target': 'Dom.query("#b:target")',
                 ':empty': 'Dom.query("#b:empty")',
-                ':contains(text)': 'Dom.query("#b:contains(#b)")',
+               // ':contains(text)': 'Dom.query("#b:contains(#b)")',
                 ':not(selector)': 'Dom.query("#b:not(#b)")',
-                ':selected': 'Dom.query("#b:selected")',
+               // ':selected': 'Dom.query("#b:selected")',
                 ':checked': 'Dom.query("#b:checked")',
                 ':enabled': 'Dom.query("#b:enabled")',
                 ':disabled': 'Dom.query("#b:disabled")',
+
+                // ':hidden': 'Dom.query("#b:hidden")',
+                // ':visible': 'Dom.query("#b:visible")',
+                // ':has(selector)': 'Dom.query("#b:has(#a)")',
+
                 ':input': 'Dom.query("#b:target")',
                 ':nth-child(n) (不支持 2n+1 格式)': 'Dom.query("#b:nth-child(1)")',
                 ':nth-child(odd)': 'Dom.query("#b:nth-child(odd)")',
                 ':nth-child(even)': 'Dom.query("#b:nth-child(even)")',
                 ':first-child': 'Dom.query("#b:first-child")',
                 ':last-child': 'Dom.query("#b:last-child")',
-                ':only-child': 'Dom.query("#b:only-child")',
-
-                ':hidden': 'Dom.query("#b:hidden")',
-                ':visible': 'Dom.query("#b:visible")',
-                ':has(selector)': 'Dom.query("#b:has(#a)")'
-
+                ':only-child': 'Dom.query("#b:only-child")'
 
             });
 

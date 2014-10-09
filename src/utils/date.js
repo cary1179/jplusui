@@ -5,7 +5,6 @@
 
 //#include core/base.js
 
-
 /**
  * 时间。
  * @class Date

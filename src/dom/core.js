@@ -162,9 +162,12 @@ var Dom = {
      * @static
      */
     parse: function (/*String*/html, context) {
-        context = context && context !== document ? context.createElement('div') : (Dom.parseContainer || (Dom.parseContainer = document.createElement('div')));
-        context.innerHTML = html;
-        return context.firstChild;
+        if (typeof html !== 'object') {
+            context = context && context !== document ? context.createElement('div') : (Dom.parseContainer || (Dom.parseContainer = document.createElement('div')));
+            context.innerHTML = html;
+            html = context.firstChild;
+        }
+        return html;
     },
 
     // #endregion
@@ -216,6 +219,15 @@ var Dom = {
     // #endregion
 
     // #region 遍历
+    
+    /**
+	 * 获取元素的文档。
+	 * @param {Node} node 元素。
+	 * @return {Document} 文档。
+	 */
+    getDocument: function (/*Node*/node) {
+        return node.ownerDocument || node.document || node;
+    },
 
     /**
      * 判断指定节点之后有无存在子节点。
@@ -346,65 +358,97 @@ var Dom = {
     },
     
     /**
-     * 插入一个HTML 到末尾。
-     * @param {String/Node/Dom} html 要插入的内容。
-     * @return {Dom} 返回插入的新节点对象。
+     * 获取当前 Dom 对象的全部直接子节点。
+     * @param {Integer/String/Function/Boolean} [filter] 用于查找子元素的 CSS 选择器 或者 元素在Control对象中的索引 或者 用于筛选元素的过滤函数 或者 true 则同时接收包含文本节点的所有节点。
+     * @return {NodeList} 返回满足要求的节点的列表。
+     * @example
+     *
+     * 查找DIV中的每个子元素。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;div&gt;&lt;span&gt;Hello Again&lt;/span&gt;&lt;/div&gt;&lt;p&gt;And Again&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("div").getChildren()</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;span&gt;Hello Again&lt;/span&gt; ]</pre>
+     *
+     * 在每个div中查找 div。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;div&gt;&lt;span&gt;Hello&lt;/span&gt;&lt;p class="selected"&gt;Hello Again&lt;/p&gt;&lt;p&gt;And Again&lt;/p&gt;&lt;/div&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("div").getChildren("div")</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello Again&lt;/p&gt; ]</pre>
      */
-    append: function (node, html) {
-        var c = Dom.parseNode(html, node).firstChild;
-        while (c) {
-            var next = c.nextSibling;
-            node.appendChild(c);
-            c = next;
-        }
+    children: function (elem) {
+        return elem.children;
     },
 
     /**
-     * 插入一个HTML 到顶部。
-     * @param {String/Node/Dom} html 要插入的内容。
-     * @return {Dom} 返回插入的新节点对象。
+     * 插入一个HTML 到末尾。
+     * @param {String} html 要插入的内容。
+     * @return {Node} 返回插入的新节点对象。
+     */
+    append: function (node, html) {
+        var c = Dom.parse(html, node.ownerDocument).parentNode;
+        while (c.firstChild) {
+            node.appendChild(c.firstChild);
+        }
+        return node.lastChild;
+    },
+
+    /**
+     * 插入一个 HTML 到顶部。
+     * @param {String} html 要插入的内容。
+     * @return {Node} 返回插入的新节点对象。
      */
     prepend: function (node, html) {
-        var c = Dom.parseNode(html, node).firstChild, p = node.firstChild;
-        while (c) {
-            var next = c.nextSibling;
-            p = node.insertBefore(c, p);
-            c = next;
+        var c = Dom.parse(html, node.ownerDocument).parentNode, p = node.firstChild;
+        while (c.firstChild) {
+            node.insertBefore(c.firstChild, p);
         }
+        return node.firstChild;
     },
 
     /**
      * 插入一个HTML 到前面。
-     * @param {String/Node/Dom} html 要插入的内容。
-     * @return {Dom} 返回插入的新节点对象。
+     * @param {String} html 要插入的内容。
+     * @return {Node} 返回插入的新节点对象。
      */
     before: function (node, html) {
         // #assert node.parentNode, "只有存在父节点的才能插入节点到其前面"
-        var c = Dom.parseNode(html, node).firstChild, p = node.parentNode;
-        while (c) {
-            var next = c.nextSibling;
-            p.insertBefore(c, node);
-            c = next;
+        var c = Dom.parse(html, node.ownerDocument).parentNode, p = node.parentNode;
+        while (c.firstChild) {
+            p.insertBefore(c.firstChild, node);
         }
+        return node.previousSibling;
     },
 
     /**
      * 插入一个HTML 到后面。
-     * @param {String/Node/Dom} html 要插入的内容。
-     * @return {Dom} 返回插入的新节点对象。
+     * @param {String} html 要插入的内容。
+     * @return {Node} 返回插入的新节点对象。
      */
     after: function (node, html) {
-        Dom.before(node.nextSibling, html);
+        return node.nextSibling ? Dom.before(node.nextSibling, html) : Dom.append(node.parentNode, html);
     },
     
     /**
+     * 如果指定节点未添加到 DOM 树，则进行添加。
+     */
+    render: function (node, parentNode, refNode) {
+        if (parentNode) {
+            parentNode.insertBefore(node, refNode || null);
+        } else if (!Dom.contains(node.ownerDocument, node)) {
+            node.ownerDocument.body.appendChild(node);
+        }
+    },
+
+    /**
      * 移除当前 Dom 对象或其子对象。
-     * @param {Dom} [child] 如果指定了子对象，则删除此对象。
+     * @param {Node} [child] 如果指定了子对象，则删除此对象。
      * @return this
-     * @see #dispose
      * @remark
      * 这个方法不会彻底移除 Dom 对象，而只是暂时将其从 Dom 树分离。
-     * 如果需要彻底删除 Dom 对象，使用 {@link #dispose}方法。
      * @example
      * 从DOM中把所有段落删除。
      * #####HTML:
@@ -427,11 +471,11 @@ var Dom = {
     },
     
     /**
-     * 创建并返回当前 Dom 对象的副本。
+     * 创建并返回指定节点的副本。
      * @param {Boolean} deep=true 是否复制子元素。
      * @param {Boolean} cloneDataAndEvent=false 是否复制数据和事件。
      * @param {Boolean} keepId=false 是否复制 id 。
-     * @return {Dom} 新 Dom 对象。
+     * @return {Node} 新节点对象。
      *
      * @example
      * 克隆所有b元素（并选中这些克隆的副本），然后将它们前置到所有段落中。
@@ -457,7 +501,7 @@ var Dom = {
      * @return {String} 字符串。
      */
     styleString: function (/*Element*/elem, camelizedCssPropertyName) {
-        return elem.style[camelizedCssPropertyName] || getComputedStyle(elem, '')[camelizedCssPropertyName];
+        return elem.style[camelizedCssPropertyName] || elem.ownerDocument.defaultView.getComputedStyle(elem, '')[camelizedCssPropertyName];
     },
 
     /**
@@ -468,7 +512,7 @@ var Dom = {
      */
     styleNumber: function (/*Element*/elem, camelizedCssPropertyName) {
         var value = elem.style[camelizedCssPropertyName];
-        return value && (value = parseFloat(value)) != null ? value : (parseFloat(getComputedStyle(elem, '')[camelizedCssPropertyName]) || 0);
+        return value && (value = parseFloat(value)) != null ? value : (parseFloat(elem.ownerDocument.defaultView.getComputedStyle(elem, '')[camelizedCssPropertyName]) || 0);
     },
     
     /**
@@ -812,7 +856,72 @@ var Dom = {
 
     // #endregion
     
-    // #region 节点定位和尺寸
+    // #region 定位和尺寸
+    
+    /**
+	 * 根据不同的内容进行计算。
+	 * @param {Element} elem 元素。
+	 * @param {String} expression 要计算的表达式。其中使用变量代表 CSS 属性值，如 "width+paddingLeft"。
+	 * @return {Number} 返回计算的值。
+	 * @static
+	 */
+    calc: function (elem, expression) {
+        var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, null);
+        return eval(expression.replace(/(\w+)/g, '(parseFloat(computedStyle["$1"])||0)'))
+    },
+
+    /**
+     * 获取当前 Dom 对象的可视区域大小。包括 border 大小。
+     * @return {Point} 位置。
+     * @remark
+     * 此方法对可见和隐藏元素均有效。
+     * 
+     * 获取元素实际占用大小（包括内边距和边框）。
+     * @example
+     * 获取第一段落实际大小。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.query("p:first").getSize();</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">{x=200,y=100}</pre>
+     */
+    getSize: function (elem) {
+        return elem.nodeType === 9 ? {
+            x: elem.documentElement.clientWidth,
+            y: elem.documentElement.clientHeight,
+        } : {
+            x: elem.offsetWidth,
+            y: elem.offsetHeight
+        };
+    },
+
+    /**
+     * 设置当前 Dom 对象的显示大小。
+     * @param {Number/Point} x 要设置的宽或一个包含 x、y 属性的对象。如果不设置，使用 null 。
+     * @param {Number} y 要设置的高。如果不设置，使用 null 。
+     * @return this
+     * @remark
+     * 设置元素实际占用大小（包括内边距和边框，但不包括滚动区域之外的大小）。
+     *
+     * 此方法对可见和隐藏元素均有效。
+     * @example
+     * 设置 id=myP 的段落的大小。
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p id="myP"&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>Dom.get("myP").setSize({x:200,y:100});</pre>
+     */
+    setSize: function (elem, value) {
+        if (value.x != null) {
+            Dom.setWidth(elem, value.x - Dom.calc(elem, 'borderLeftWidth+borderRightWidth+paddingLeft+paddingRight'));
+        }
+            
+        if (value.y != null) {
+            Dom.setHeight(elem, value.y - Dom.calc(elem, 'borderTopWidth+borderBottomWidth+paddingLeft+paddingRight'));
+        }
+            
+    },
 
     /**
      * 获取当前 Dom 对象的滚动区域大小。
@@ -941,6 +1050,86 @@ var Dom = {
 
         if (value.x != null)
             elem.left = value.x + 'px';
+    },
+    
+    /**
+     * 获取用于让当前 Dom 对象定位的父对象。
+     * @return {Dom} 返回一个节点对象。如果不存在，则返回 null 。
+     */
+    offsetParent: function (elem) {
+        var p = elem;
+        while ((p = p.offsetParent) && !/^(?:BODY|HTML|#document)$/i.test(p.nodeName) && Dom.styleString(p, "position") === "static");
+        return p || (elem.ownerDocument || elem).body;
+    },
+
+    /**
+     * 获取当前 Dom 对象的绝对位置。
+     * @return {Point} 返回的对象包含两个整型属性：x 和 y。
+     * @remark
+     * 此方法只对可见元素有效。
+     * @example
+     * 获取第二段的偏移
+     * #####HTML:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;</pre>
+     * #####JavaScript:
+     * <pre>
+     * var p = Dom.query("p").item(1);
+     * var position = p.getPosition();
+     * trace( "left: " + position.x + ", top: " + position.y );
+     * </pre>
+     * #####结果:
+     * <pre lang="htm" format="none">&lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;left: 0, top: 35&lt;/p&gt;</pre>
+     */
+    getPosition: function (elem) {
+
+        // 对于 document，返回 scroll 。
+        if (elem.nodeType === 9) {
+            return getDocumentScroll(elem);
+        }
+
+        var bound = typeof elem.getBoundingClientRect !== "undefined" ? elem.getBoundingClientRect() : { x: 0, y: 0 },
+            doc = getDocument(elem),
+            html = doc.documentElement,
+            htmlScroll = getDocumentScroll(doc);
+        return {
+            x: bound.left + htmlScroll.x - html.clientLeft,
+            y: bound.top + htmlScroll.y - html.clientTop
+        };
+    },
+
+    /**
+     * 设置当前 Dom 对象的绝对位置。
+     * @param {Number/Point} x 要设置的水平坐标或一个包含 x、y 属性的对象。如果不设置，使用 null 。
+     * @param {Number} y 要设置的垂直坐标。如果不设置，使用 null 。
+     * @return this
+     * @remark
+     * 如果对象原先的position样式属性是static的话，会被改成relative来实现重定位。
+     * @example
+     * 设置第二段的位置。
+     * #####HTML:
+     * <pre lang="htm" format="none">
+     * &lt;p&gt;Hello&lt;/p&gt;&lt;p&gt;2nd Paragraph&lt;/p&gt;
+     * </pre>
+     * #####JavaScript:
+     * <pre>
+     * Dom.query("p:last").setPosition({ x: 10, y: 30 });
+     * </pre>
+     */
+    setPosition: function (elem, value) {
+
+        Dom.movable(elem);
+
+        var currentPosition = Dom.getPosition(elem),
+            offset = Dom.getOffset(elem);
+
+        if (value.y != null) offset.y += value.y - currentPosition.y;
+        else offset.y = null;
+
+        if (value.x != null) offset.x += value.x - currentPosition.x;
+        else offset.x = null;
+
+        Dom.setOffset(elem, offset);
+
     },
 
     /**

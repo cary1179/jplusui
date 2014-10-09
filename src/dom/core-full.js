@@ -6,404 +6,6 @@
 //#include core/core.js
 //#include core/class.js
 
-/**
- * 提供操作 DOM 的静态高效方法。
- */
-var Dom = {
-
-    // #region Dom Ready
-
-    /**
-     * 设置在 DOM 解析完成后的回调函数。
-     * @param {Function} callback 当 DOM 解析完成后的回调函数。
-     */
-    ready: function ( /*Function*/callback) {
-        if (/complete|loaded|interactive/.test(document.readyState) && document.body) {
-            callback.call(document);
-        } else {
-            document.addEventListener('DOMContentLoaded', callback, false);
-        }
-    },
-
-    // #endregion
-
-    // #region 节点获取
-
-    /**
-	 * 执行一个 CSS 选择器，返回所有匹配的节点列表。
-	 * @param {String} selector 要执行的 CSS 选择器。
-	 * @param {Document} context 执行的上下文文档。
-	 * @return {NodeList} 返回匹配的节点列表。
-	 * @static
-	 * @example
-	 * 找到所有 p 元素。
-	 * #####HTML:
-	 * <pre lang="htm" format="none">
-	 * &lt;p&gt;one&lt;/p&gt; &lt;div&gt;&lt;p&gt;two&lt;/p&gt;&lt;/div&gt; &lt;p&gt;three&lt;/p&gt;
-	 * </pre>
-	 * 
-	 * #####Javascript:
-	 * <pre>
-	 * Dom.query("p");
-	 * </pre>
-	 * 
-	 * #####结果:
-	 * <pre lang="htm" format="none">
-	 * [  &lt;p&gt;one&lt;/p&gt; ,&lt;p&gt;two&lt;/p&gt;, &lt;p&gt;three&lt;/p&gt;  ]
-	 * </pre>
-	 * 
-	 * <br>
-	 * 找到所有 p 元素，并且这些元素都必须是 div 元素的子元素。
-	 * #####HTML:
-	 * <pre lang="htm" format="none">
-	 * &lt;p&gt;one&lt;/p&gt; &lt;div&gt;&lt;p&gt;two&lt;/p&gt;&lt;/div&gt; &lt;p&gt;three&lt;/p&gt;</pre>
-	 * 
-	 * #####Javascript:
-	 * <pre>
-	 * Dom.query("div &gt; p");
-	 * </pre>
-	 * 
-	 * #####结果:
-	 * <pre lang="htm" format="none">
-	 * [ &lt;p&gt;two&lt;/p&gt; ]
-	 * </pre>
-	 * 
-	 * <br>
-	 * 查找所有的单选按钮(即: type 值为 radio 的 input 元素)。
-	 * <pre>Dom.query("input[type=radio]");</pre>
-	 */
-    query: function (selector, context) {
-        return (context || document).querySelectorAll(selector);
-    },
-
-    /**
-	 * 执行一个 CSS 选择器，返回匹配的第一个节点。
-	 * @param {String} selector 要执行的 CSS 选择器。
-	 * @param {Document} context 执行的上下文文档。
-	 * @return {Element} 返回匹配的节点。
-	 */
-    find: function (selector, context) {
-        return (context || document).querySelector(selector);
-    },
-
-    /**
-	 * 根据 *id* 获取节点。
-	 * @param {String} id 要获取元素的 id。
-	 * @return {Element} 返回匹配的节点。
-	 * @static
-	 * @example
-	 * 找到 id 为 a 的元素。
-	 * #####HTML:
-	 * <pre lang="htm" format="none">
-	 * &lt;p id="a"&gt;once&lt;/p&gt; &lt;div&gt;&lt;p&gt;two&lt;/p&gt;&lt;/div&gt; &lt;p&gt;three&lt;/p&gt;
-	 * </pre>
-	 * #####JavaScript:
-	 * <pre>Dom.get("a");</pre>
-	 * #####结果:
-	 * <pre>{&lt;p id="a"&gt;once&lt;/p&gt;}</pre>
-	 * 
-	 * <br>
-	 * 返回 id 为 a1 的 DOM 对象
-	 * #####HTML:
-	 * <pre lang="htm" format="none">&lt;p id="a1"&gt;&lt;/p&gt; &lt;p id="a2"&gt;&lt;/p&gt; </pre>
-	 *
-	 * #####JavaScript:
-	 * <pre>Dom.get(document.getElecmentById('a1')) // 等效于 Dom.get('a1')</pre>
-	 * <pre>Dom.get(['a1', 'a2']); // 等效于 Dom.get('a1')</pre>
-	 * <pre>Dom.get(Dom.get('a1')); // 等效于 Dom.get('a1')</pre>
-	 * 
-	 * #####结果:
-	 * <pre>{&lt;p id="a1"&gt;&lt;/p&gt;}</pre>
-	 */
-    get: function (id) {
-        return document.getElementById(id);
-    },
-
-    // #endregion
-
-    // #region 节点解析
-
-    /**
-     * 解析一个 html 字符串，返回相应的 DOM 对象。
-     * @param {String} html 要解析的 HTML 字符串。如果解析的字符串是一个 HTML 字符串，则此函数会忽略字符串前后的空格。
-     * @return {Element} 返回包含所有已解析的节点的 DOM 对象。
-     * @static
-     */
-    parse: function (html, context) {
-        context = context === document ? (Dom.parseContainer || (Dom.parseContainer = document.createElement('div'))) : context.createElement('div');
-        context.innerHTML = html.trim();
-        return context.lastChild;
-    },
-
-    // #endregion
-
-    // #region 事件
-
-    /**
-     * 为指定元素添加一个事件监听器。
-     * @param {Element} elem 要处理的元素。
-     * @param {String} eventName 要添加的事件名。
-     * @param {Function} eventListener 要添加的事件监听器。
-     */
-    on: function ( /*Element*/elem, eventName, /*Function*/eventListener) {
-        elem.addEventListener(eventName, eventListener, false);
-    },
-
-    /**
-     * 删除指定元素的一个或多个事件监听器。
-     * @param {Element} elem 要处理的元素。
-     * @param {String} eventName 要删除的事件名。
-     * @param {Function} eventListener 要删除的事件处理函数。
-     */
-    off: function ( /*Element*/elem, eventName, /*Function*/eventListener) {
-        elem.removeEventListener(eventName, eventListener, false);
-    },
-
-    /**
-     * 手动触发一个监听器。
-     * @param {Element} elem 要处理的元素。
-     * @param {String} eventName 要触发的事件名。
-     * @param {Object} eventArgs 传递给监听器的事件对象。
-     */
-    trigger: function ( /*Element*/elem, eventName, eventArgs) {
-        var eventFix = Dom.triggerFix;
-        if (!eventFix) {
-            Dom.triggerFix = eventFix = {};
-            eventFix.click = eventFix.mousedown = eventFix.mouseup = eventFix.mousemove = 'MouseEvents';
-        }
-
-        var event = document.createEvent(eventFix[eventName] || 'Events'),
-            bubbles = true;
-        for (var name in eventArgs) {
-            name === 'bubbles' ? (bubbles = !!e[name]) : (event[name] = eventArgs[name]);
-        }
-        event.initEvent(eventName, bubbles, true);
-        elem.dispatchEvent(event);
-    },
-
-    // #endregion
-
-
-
-};
-
-//#region Parse
-
-/**
- * 新元素缓存。
- * @type Object
- * @remark 在 Dom.parse 使用。
- */
-var parseCache = {},
-
-    /**
-     * 对 HTML 字符串进行包装用的字符串。
-     * @type Object 部分元素只能属于特定父元素， parseFix 列出这些元素，并使它们正确地添加到父元素中。 IE678
-     *       会忽视第一个标签，所以额外添加一个 div 标签，以保证此类浏览器正常运行。
-     * @remark 在 Dom.parse 和 Dom#setHtml 使用。
-     */
-    parseFix = Dom.parseFix = {
-        $default: isIE678 ? [1, '$<div>', '</div>'] : [0, '', ''],
-        option: [1, '<select multiple="multiple">', '</select>'],
-        legend: [1, '<fieldset>', '</fieldset>'],
-        thead: [1, '<table>', '</table>'],
-        tr: [2, '<table><tbody>', '</tbody></table>'],
-        td: [3, '<table><tbody><tr>', '</tr></tbody></table>'],
-        col: [3, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
-        area: [1, '<map>', '</map>']
-    },
-
-    /**
-     * 判断选择框的正则表达式。
-     * @type RegExp
-     * @remark Dom.parse 和 Dom#clone 使用。
-     */
-    rCheckBox = /^(?:checkbox|radio)$/,
-
-    /**
-     * 处理 <div/> 格式标签的正则表达式。
-     * @type RegExp
-     */
-    rXhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig;
-
-// 初始化 parseFix。
-parseFix.optgroup = parseFix.option;
-parseFix.tbody = parseFix.tfoot = parseFix.colgroup = parseFix.caption = parseFix.thead;
-parseFix.th = parseFix.td;
-
-/**
- * 解析一个 html 字符串，返回相应的原生节点。
- * @param {String/Element} html 要解析的 HTML 字符串。如果解析的字符串是一个 HTML 字符串，则此函数会忽略字符串前后的空格。
- * @param {Element} context=document 生成节点使用的文档中的任何节点。
- * @param {Boolean} cachable=true 指示是否缓存节点。这会加速下次的解析速度。
- * @return {Element/TextNode/DocumentFragment} 如果 HTML 是纯文本，返回 TextNode。如果 HTML 包含多个节点，返回 DocumentFragment 。否则返回 Element。
- * @static
- */
-Dom.parseNode = function (html, context, cachable) {
-
-    // 不是 html，直接返回。
-    if (typeof html === 'string') {
-
-        var srcHTML = html, div, tag, wrap;
-
-        // 仅缓存 512B 以内的 HTML 字符串。
-        cachable = cachable !== false && srcHTML.length < 512;
-        context = context && context.ownerDocument || document;
-
-        ////assert(context.createElement, 'Dom.parseNode(html, context, cachable): {context} 必须是 DOM 节点。', context);
-
-        // 查找是否存在缓存。
-        if (cachable && (html = parseCache[srcHTML]) && html.ownerDocument === context) {
-
-            // 复制并返回节点的副本。
-            html = html.cloneNode(true);
-
-        } else {
-
-            // 测试查找 HTML 标签。
-            if (tag = /<([!\w:]+)/.exec(srcHTML)) {
-
-                ////assert.isString(srcHTML, 'Dom.parseNode(html, context, cachable): {html} ~');
-                div = context.createElement("div");
-
-                wrap = Dom.parseFix[tag[1].toLowerCase()] || Dom.parseFix.$default;
-
-                // IE8- 会过滤字符串前的空格。
-                // 为了保证全部浏览器统一行为，此处删除全部首尾空格。
-
-                div.innerHTML = wrap[1] + srcHTML.trim().replace(rXhtmlTag, "<$1></$2>") + wrap[2];
-
-                // IE67: 如果节点未添加到文档。需要重置 checkbox 的 checked 属性。
-                if (navigator.isIE67) {
-                    Object.each(div.getElementsByTagName('INPUT'), function (elem) {
-                        if (rCheckBox.test(elem.type)) {
-                            elem.checked = elem.defaultChecked;
-                        }
-                    });
-                }
-
-                // IE 下有些标签解析会错位，这里转到实际的节点位置。
-                for (tag = wrap[0]; tag--;)
-                    div = div.lastChild;
-
-                ////assert.isNode(div, "Dom.parseNode(html, context, cachable): 无法根据 {html} 创建节点。", srcHTML);
-
-                // 获取第一个节点。
-                html = div.firstChild;
-
-                // 如果有多个节点，则返回 Dom 对象。
-                if (html === div.lastChild) {
-
-                    // 删除用于创建节点的父 DIV 标签。
-                    div.removeChild(html);
-
-                } else {
-
-                    html = new Dom;
-
-                    cachable = false;
-
-                    for (tag = div.firstChild; tag; tag = wrap) {
-
-                        // 先记录 标签的下一个节点。
-                        wrap = tag.nextSibling;
-
-                        // 删除用于创建节点的父 DIV 标签。
-                        div.removeChild(tag);
-
-                        // 保存节点。
-                        html.push(tag);
-
-                    }
-
-                }
-
-                div = null;
-
-                // 如果可以，先进行缓存。优化下次的节点解析。
-                if (cachable && !/<(?:script|object|embed|option|style)/i.test(srcHTML)) {
-                    parseCache[srcHTML] = html.cloneNode(true);
-                }
-
-            } else {
-
-                // 创建文本节点。
-                html = context.createTextNode(srcHTML);
-            }
-
-        }
-
-    }
-
-    return html;
-
-};
-
-/**
- * 根据提供的原始 HTML 标记字符串，解析并动态创建一个节点，并返回这个节点的 Dom 对象包装对象。
- * @param {String/Node} html 用于动态创建DOM元素的HTML字符串。
- * @param {Document} ownerDocument=document 创建DOM元素所在的文档。
- * @param {Boolean} cachable=true 指示是否缓存节点。
- * @return {Dom} Dom 对象。
- * @static
- * @remark
- * 可以传递一个手写的 HTML 字符串，或者由某些模板引擎或插件创建的字符串，也可以是通过 AJAX 加载过来的字符串。但是在你创建 input 元素的时会有限制，可以参考第二个示例。当然这个字符串可以包含斜杠 (比如一个图像地址)，还有反斜杠。当创建单个元素时，请使用闭合标签或 XHTML 格式。
- * 在这个函数的内部，是通过临时创建一个元素，并将这个元素的 innerHTML 属性设置为给定的标记字符串，来实现标记到 DOM 元素转换的。所以，这个函数既有灵活性，也有局限性。
- * 
- * @example
- * 动态创建一个 div 元素（以及其中的所有内容），并将它追加到 body 元素中。
- * #####JavaScript:
- * <pre>Dom.parse("&lt;div&gt;&lt;p&gt;Hello&lt;/p&gt;&lt;/div&gt;").appendTo(document.body);</pre>
- * #####结果:
- * <pre lang="htm" format="none">[&lt;div&gt;&lt;p&gt;Hello&lt;/p&gt;&lt;/div&gt;]</pre>
- * 
- * 创建一个 &lt;input&gt; 元素必须同时设定 type 属性。因为微软规定 &lt;input&gt; 元素的 type 只能写一次。
- * #####JavaScript:
- * <pre>
- * // 在 IE 中无效:
- * Dom.parse("&lt;input&gt;").setAttr("type", "checkbox");
- * // 在 IE 中有效:
- * Dom.parse("&lt;input type='checkbox'&gt;");
- * </pre>        
- */
-Dom.parse = function (html, context, cachable) {
-    return Dom.query(Dom.parseNode(html, context, cachable));
-};
-
-//#endregion
-
-/**
- * 提供对单一原生 HTML 节点的封装操作。
- * @class
- * @remark 
- * @see Dom
- * @see Dom.get
- * @see Dom.query
- * @remark
- * 所有 DOM 方法都是依赖于此类进行的。比如如下 HTML 代码:
- * <pre>
- * &lt;div id="myDivId"&gt;内容&lt;/div&gt;
- * </pre>
- * 现在如果要操作这个节点，必须获取这个节点对应的 **Dom** 对象实例。
- * 最常用的创建 **Dom** 对象实例的方法是 {@link Dom.get}。如:
- * <pre>
- * var myDiv = Dom.get("myDivId");
- * 
- * myDiv.addClass("cssClass");
- * </pre>
- * 其中，myDiv就是一个 **Dom** 对象。然后通过 **Dom** 对象提供的方法可以方便地操作这个节点。<br>
- * myDiv.node 属性就是这个 Dom 对象对应的原生 HTML 节点。即:
- * <pre>
- * Dom.get("myDivId").node === document.getElementById("myDivId");
- * </pre>
- * 
- * **Dom** 类仅实现了对一个节点的操作，如果需要同时处理多个节点，可以使用 {@link Dom} 类。
- * 	{@link Dom} 类的方法和 **Dom** 类的方法基本一致。
- */
-function Dom(selector, context) {
-    return Dom.query(selector, context);
-}
-
 var Dom = (function () {
 
     //#region Core
@@ -1039,6 +641,191 @@ var Dom = (function () {
             '*=': ';t=t&&t.indexOf(v[2])>=0'
         }
 
+    };
+
+    //#endregion
+
+    //#region Parse
+
+    /**
+     * 新元素缓存。
+     * @type Object
+     * @remark 在 Dom.parse 使用。
+     */
+    var parseCache = {},
+
+        /**
+         * 对 HTML 字符串进行包装用的字符串。
+         * @type Object 部分元素只能属于特定父元素， parseFix 列出这些元素，并使它们正确地添加到父元素中。 IE678
+         *       会忽视第一个标签，所以额外添加一个 div 标签，以保证此类浏览器正常运行。
+         * @remark 在 Dom.parse 和 Dom#setHtml 使用。
+         */
+        parseFix = Dom.parseFix = {
+            $default: isIE678 ? [1, '$<div>', '</div>'] : [0, '', ''],
+            option: [1, '<select multiple="multiple">', '</select>'],
+            legend: [1, '<fieldset>', '</fieldset>'],
+            thead: [1, '<table>', '</table>'],
+            tr: [2, '<table><tbody>', '</tbody></table>'],
+            td: [3, '<table><tbody><tr>', '</tr></tbody></table>'],
+            col: [3, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
+            area: [1, '<map>', '</map>']
+        },
+
+        /**
+         * 判断选择框的正则表达式。
+         * @type RegExp
+         * @remark Dom.parse 和 Dom#clone 使用。
+         */
+        rCheckBox = /^(?:checkbox|radio)$/,
+
+        /**
+         * 处理 <div/> 格式标签的正则表达式。
+         * @type RegExp
+         */
+        rXhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig;
+
+    // 初始化 parseFix。
+    parseFix.optgroup = parseFix.option;
+    parseFix.tbody = parseFix.tfoot = parseFix.colgroup = parseFix.caption = parseFix.thead;
+    parseFix.th = parseFix.td;
+
+    /**
+     * 解析一个 html 字符串，返回相应的原生节点。
+     * @param {String/Element} html 要解析的 HTML 字符串。如果解析的字符串是一个 HTML 字符串，则此函数会忽略字符串前后的空格。
+     * @param {Element} context=document 生成节点使用的文档中的任何节点。
+     * @param {Boolean} cachable=true 指示是否缓存节点。这会加速下次的解析速度。
+     * @return {Element/TextNode/DocumentFragment} 如果 HTML 是纯文本，返回 TextNode。如果 HTML 包含多个节点，返回 DocumentFragment 。否则返回 Element。
+     * @static
+     */
+    Dom.parseNode = function (html, context, cachable) {
+
+        // 不是 html，直接返回。
+        if (typeof html === 'string') {
+
+            var srcHTML = html, div, tag, wrap;
+
+            // 仅缓存 512B 以内的 HTML 字符串。
+            cachable = cachable !== false && srcHTML.length < 512;
+            context = context && context.ownerDocument || document;
+
+            ////assert(context.createElement, 'Dom.parseNode(html, context, cachable): {context} 必须是 DOM 节点。', context);
+
+            // 查找是否存在缓存。
+            if (cachable && (html = parseCache[srcHTML]) && html.ownerDocument === context) {
+
+                // 复制并返回节点的副本。
+                html = html.cloneNode(true);
+
+            } else {
+
+                // 测试查找 HTML 标签。
+                if (tag = /<([!\w:]+)/.exec(srcHTML)) {
+
+                    ////assert.isString(srcHTML, 'Dom.parseNode(html, context, cachable): {html} ~');
+                    div = context.createElement("div");
+
+                    wrap = Dom.parseFix[tag[1].toLowerCase()] || Dom.parseFix.$default;
+
+                    // IE8- 会过滤字符串前的空格。
+                    // 为了保证全部浏览器统一行为，此处删除全部首尾空格。
+
+                    div.innerHTML = wrap[1] + srcHTML.trim().replace(rXhtmlTag, "<$1></$2>") + wrap[2];
+
+                    // IE67: 如果节点未添加到文档。需要重置 checkbox 的 checked 属性。
+                    if (navigator.isIE67) {
+                        Object.each(div.getElementsByTagName('INPUT'), function (elem) {
+                            if (rCheckBox.test(elem.type)) {
+                                elem.checked = elem.defaultChecked;
+                            }
+                        });
+                    }
+
+                    // IE 下有些标签解析会错位，这里转到实际的节点位置。
+                    for (tag = wrap[0]; tag--;)
+                        div = div.lastChild;
+
+                    ////assert.isNode(div, "Dom.parseNode(html, context, cachable): 无法根据 {html} 创建节点。", srcHTML);
+
+                    // 获取第一个节点。
+                    html = div.firstChild;
+
+                    // 如果有多个节点，则返回 Dom 对象。
+                    if (html === div.lastChild) {
+
+                        // 删除用于创建节点的父 DIV 标签。
+                        div.removeChild(html);
+
+                    } else {
+
+                        html = new Dom;
+
+                        cachable = false;
+
+                        for (tag = div.firstChild; tag; tag = wrap) {
+
+                            // 先记录 标签的下一个节点。
+                            wrap = tag.nextSibling;
+
+                            // 删除用于创建节点的父 DIV 标签。
+                            div.removeChild(tag);
+
+                            // 保存节点。
+                            html.push(tag);
+
+                        }
+
+                    }
+
+                    div = null;
+
+                    // 如果可以，先进行缓存。优化下次的节点解析。
+                    if (cachable && !/<(?:script|object|embed|option|style)/i.test(srcHTML)) {
+                        parseCache[srcHTML] = html.cloneNode(true);
+                    }
+
+                } else {
+
+                    // 创建文本节点。
+                    html = context.createTextNode(srcHTML);
+                }
+
+            }
+
+        }
+
+        return html;
+
+    };
+
+    /**
+     * 根据提供的原始 HTML 标记字符串，解析并动态创建一个节点，并返回这个节点的 Dom 对象包装对象。
+     * @param {String/Node} html 用于动态创建DOM元素的HTML字符串。
+     * @param {Document} ownerDocument=document 创建DOM元素所在的文档。
+     * @param {Boolean} cachable=true 指示是否缓存节点。
+     * @return {Dom} Dom 对象。
+     * @static
+     * @remark
+     * 可以传递一个手写的 HTML 字符串，或者由某些模板引擎或插件创建的字符串，也可以是通过 AJAX 加载过来的字符串。但是在你创建 input 元素的时会有限制，可以参考第二个示例。当然这个字符串可以包含斜杠 (比如一个图像地址)，还有反斜杠。当创建单个元素时，请使用闭合标签或 XHTML 格式。
+     * 在这个函数的内部，是通过临时创建一个元素，并将这个元素的 innerHTML 属性设置为给定的标记字符串，来实现标记到 DOM 元素转换的。所以，这个函数既有灵活性，也有局限性。
+     * 
+     * @example
+     * 动态创建一个 div 元素（以及其中的所有内容），并将它追加到 body 元素中。
+     * #####JavaScript:
+     * <pre>Dom.parse("&lt;div&gt;&lt;p&gt;Hello&lt;/p&gt;&lt;/div&gt;").appendTo(document.body);</pre>
+     * #####结果:
+     * <pre lang="htm" format="none">[&lt;div&gt;&lt;p&gt;Hello&lt;/p&gt;&lt;/div&gt;]</pre>
+     * 
+     * 创建一个 &lt;input&gt; 元素必须同时设定 type 属性。因为微软规定 &lt;input&gt; 元素的 type 只能写一次。
+     * #####JavaScript:
+     * <pre>
+     * // 在 IE 中无效:
+     * Dom.parse("&lt;input&gt;").setAttr("type", "checkbox");
+     * // 在 IE 中有效:
+     * Dom.parse("&lt;input type='checkbox'&gt;");
+     * </pre>        
+     */
+    Dom.parse = function (html, context, cachable) {
+        return Dom.query(Dom.parseNode(html, context, cachable));
     };
 
     //#endregion
