@@ -71,7 +71,7 @@ $.prototype.concat = function () {
     return this;
 };
 
-$.prototype.item = function(index) {
+$.prototype.get = function(index) {
     return $(this[index < 0 ? this.length + index : index]);
 };
 

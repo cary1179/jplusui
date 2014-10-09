@@ -100,7 +100,7 @@ var Dom = {
         } finally {
             tempParent && tempParent.removeChild(elem);
         }
-        
+
     },
 
     /**
@@ -255,7 +255,7 @@ var Dom = {
     // #endregion
 
     // #region 文档遍历
-    
+
     /**
 	 * 获取指定节点的文档。
 	 * @param {Node} node 要获取的节点。
@@ -301,7 +301,7 @@ var Dom = {
         }
         return node;
     },
-    
+
     /**
      * 获取指定节点的父元素。
      * @param {Node} node 要获取的节点。
@@ -314,9 +314,9 @@ var Dom = {
      * <pre>Dom.parent(Dom.find("span"))</pre>
      */
     parent: function (/*Node*/node) {
-        return node.parentElement;
+        return node.parentNode;
     },
-    
+
     /**
      * 获取指定节点的第一个子元素。
      * @param {Node} node 要获取的节点。
@@ -392,7 +392,7 @@ var Dom = {
     prev: function (node) {
         return node.previousElementSibling;
     },
-    
+
     /**
      * 获取指定节点的全部直接子元素。
      * @param {Node} node 要获取的节点。
@@ -476,7 +476,7 @@ var Dom = {
         // #assert node.parentNode, "只有存在父节点的才能插入节点到其后面"
         return node.nextSibling ? Dom.before(node.nextSibling, html) : Dom.append(node.parentNode, html);
     },
-    
+
     /**
      * 如果指定节点未添加到 DOM 树，则进行添加。
 	 * @param {Node} node 要获取的节点。
@@ -516,7 +516,7 @@ var Dom = {
     remove: function (/*Node*/node) {
         node.parentNode && node.parentNode.removeChild(node);
     },
-    
+
     /**
      * 创建并返回指定节点的副本。
 	 * @param {Node} node 要获取的节点。
@@ -539,7 +539,7 @@ var Dom = {
     },
 
     // #endregion
-    
+
     // #region 样式和属性
 
     _fixProp: function (name) {
@@ -695,7 +695,26 @@ var Dom = {
      * <pre lang="htm" format="none">&lt;div id="a"&gt;&lt;a/&gt;&lt;/div&gt;</pre>
      */
     setHtml: function (/*Element*/elem, value) {
+
+        // #if CompactMode
+
+        // IE6-8: 需要处理特殊标签。
+        if (!+"\v") {
+            Dom.empty(elem);
+            Dom.append(elem, value);
+            return;
+        }
+
+        // #endif
+
         elem.innerHTML = value;
+    },
+
+    /**
+     * 清空指定节点。
+     */
+    empty: function (elem) {
+        elem.innerHTML = '';
     },
 
     /**
@@ -707,6 +726,15 @@ var Dom = {
      */
     hasClass: function (/*Element*/elem, className) {
         // #assert className && (!className.indexOf || !/[\s\r\n]/.test(className)), 'className 不能为空，且不允许有空格和换行；如果需要判断 2 个 class 同时存在，可以调用两次本函数： if(hasClass('A') && hasClass('B')) ...")'
+
+        // #if CompactMode
+
+        if (!elem.classList) {
+            return (" " + elem.className + " ").indexOf(" " + className + " ") >= 0;
+        }
+
+        // #endif
+        
         return elem.classList.contains(className);
     },
 
@@ -732,6 +760,18 @@ var Dom = {
      * <pre lang="htm" format="none">[ &lt;p class="selected highlight"&gt;Hello&lt;/p&gt; ]</pre>
      */
     addClass: function (/*Element*/elem, className) {
+
+        // #if CompactMode
+
+        if (!elem.classList) {
+            if ((" " + elem.className + " ").indexOf(className) < 0) {
+                elem.className += ' ' + className;
+            }
+            return;
+        }
+
+        // #endif
+
         elem.classList.add(className);
     },
 
@@ -753,6 +793,16 @@ var Dom = {
      * </pre>
      */
     removeClass: function (/*Element*/elem, className) {
+
+        // #if CompactMode
+
+        if (!elem.classList) {
+            elem.className = className ? (" " + elem.className + " ").replace(" " + classList[i] + " ", " ").trim() : '';
+            return;
+        }
+
+        // #endif
+
         className ? elem.classList.remove(className) : (elem.className = '');
     },
 
@@ -773,6 +823,16 @@ var Dom = {
      * <pre lang="htm" format="none">[ &lt;p class="selected"&gt;Hello&lt;/p&gt;, &lt;p&gt;Hello Again&lt;/p&gt; ]</pre>
      */
     toggleClass: function (elem, className, value) {
+
+        // #if CompactMode
+
+        if (!elem.classList) {
+            ((value == undefined ? Dom.hasClass(elem, className) : !value) ? Dom.removeClass : Dom.addClass)(elem, className);
+            return;
+        }
+
+        // #endif
+
         elem.classList.toggle(className, value);
     },
 
@@ -923,9 +983,9 @@ var Dom = {
     },
 
     // #endregion
-    
+
     // #region 定位和尺寸
-    
+
     /**
 	 * 根据不同的内容进行计算。
 	 * @param {Element} elem 要计算的元素。
@@ -1108,9 +1168,9 @@ var Dom = {
         if (value.x != null) {
             elem.left = value.x + 'px';
         }
-            
+
     },
-    
+
     /**
      * 获取用于让指定节点定位的父对象。
      * @param {Element} elem 要设置的元素。
@@ -1246,3 +1306,378 @@ var Dom = {
     // #endregion
 
 };
+
+// #region 浏览器兼容性
+// #if CompactMode
+
+// #region 遍历
+
+if (!('firstElementChild' in document)) {
+
+    (function (createWalker) {
+        createWalker('first', 'nextSibling', 'firstChild');
+        createWalker('last', 'previousSibling', 'lastChild');
+        createWalker('next', 'nextSibling', 'nextSibling');
+        createWalker('prev', 'previousSibling', 'previousSibling');
+    })(function (funcName, first, next) {
+        Dom[funcName] = function (node) {
+            node = node[first];
+            while (node && node.nodeType !== 1) {
+                node = node[next];
+            }
+            return node;
+        };
+    });
+
+    Dom.children = function(elem) {
+        return Array.prototype.slice.call(elem, 0).filter(function(elem) {
+            return elem.nodeType === 1;
+        });
+    };
+
+}
+
+// #endregion
+
+//#region CSS 选择器
+
+if (!window.Element || !Element.prototype.querySelector) {
+
+    /**
+     * 使用指定的选择器代码对指定的结果集进行一次查找。
+     * @param {String} selector 选择器表达式。
+     * @param {DomList/Dom} result 上级结果集，将对此结果集进行查找。
+     * @return {DomList} 返回新的结果集。
+     */
+    Dom.query = function (selector, context) {
+
+        function addElementsByTagName(elem, tagName, result) {
+            if (elem.getElementsByTagName) {
+                pushResult(elem.getElementsByTagName(tagName), result);
+            } else if (elem.querySelectorAll) {
+                pushResult(elem.querySelectorAll(tagName), result);
+            }
+        }
+
+        function pushResult(nodelist, result) {
+            for (var i = 0; nodelist[i]; i++) {
+                result[result.length++] = nodelist[i];
+            }
+        }
+
+        /**
+         * 抛出选择器语法错误。 
+         * @param {String} message 提示。
+         */
+        function throwError(message) {
+            throw new SyntaxError('An invalid or illegal string was specified : "' + message + '"!');
+        }
+
+        function filter(result, selector) {
+
+            var match, filterFn, value, code;
+
+            // ‘#id’ ‘.className’ ‘:filter’ ‘[attr’
+            while (match = /^([#\.:]|\[\s*)((?:[-\w]|[^\x00-\xa0]|\\.)+)/.exec(selector)) {
+
+                selector = RegExp.rightContext;
+
+                if (result.length) {
+
+                    code = match[0];
+
+                    filterFn = (Dom._filterFn || (Dom._filterFn = {}))[code];
+
+                    // 如果不存在指定过滤器的特定函数，则先编译一个。
+                    if (!filterFn) {
+
+                        filterFn = 'for(var n=0,i=0,e,t;e=r[i];i++){t=';
+                        value = match[2].replace(rBackslash, "");
+
+                        switch (match[1]) {
+
+                            // ‘#id’
+                            case "#":
+                                filterFn += 'Dom.getAttr(e,"id")===v';
+                                break;
+
+                                // ‘.className’
+                            case ".":
+                                filterFn += 'Dom.hasClass(e,v)';
+                                break;
+
+                                // ‘:filter’
+                            case ":":
+
+                                filterFn += Dom._pseudos[value] || throwError(match[0]);
+
+                                // ‘selector:nth-child(2)’
+                                if (match = /^\(\s*("([^"]*)"|'([^']*)'|[^\(\)]*(\([^\(\)]*\))?)\s*\)/.exec(selector)) {
+                                    selector = RegExp.rightContext;
+                                    value = match[3] || match[2] || match[1];
+                                }
+
+                                break;
+
+                                // ‘[attr’
+                            default:
+                                value = [value.toLowerCase()];
+
+                                // ‘selector[attr]’ ‘selector[attr=value]’ ‘selector[attr='value']’  ‘selector[attr="value"]’    ‘selector[attr_=value]’
+                                if (match = /^\s*(?:(\S?=)\s*(?:(['"])(.*?)\2|(#?(?:[\w\u00c0-\uFFFF\-]|\\.)*)|)|)\s*\]/.exec(selector)) {
+                                    selector = RegExp.rightContext;
+                                    if (match[1]) {
+                                        value[1] = match[1];
+                                        value[2] = match[3] || match[4];
+                                        value[2] = value[2] ? value[2].replace(/\\([0-9a-fA-F]{2,2})/g, function (x, y) {
+                                            return String.fromCharCode(parseInt(y, 16));
+                                        }).replace(rBackslash, "") : "";
+                                    }
+                                }
+
+                                filterFn += 'Dom.getAttr(e,v[0])' + (Selector.relative[value[1]] || throwError(code));
+
+                        }
+
+                        filterFn += ';if(t)r[n++]=e;}while(r.length>n)delete r[--r.length];';
+
+                        Dom._filterFn[code] = filterFn = new Function('r', 'v', filterFn);
+
+                        filterFn.value = value;
+
+                    }
+
+                    filterFn(result, filterFn.value);
+
+                }
+
+            }
+
+            return selector;
+
+        };
+
+        var result = [],
+            match,
+            value,
+            prevResult,
+            lastSelector,
+            elem,
+            i,
+            rBackslash = /\\/g;
+
+        selector = selector.trim();
+        context = context || document;
+
+        // 解析的第一步: 解析简单选择器
+
+        // ‘*’ ‘tagName’ ‘.className’ ‘#id’
+        if (match = /^(^|[#.])((?:[-\w]|[^\x00-\xa0]|\\.)+)$/.exec(selector)) {
+
+            value = match[2].replace(rBackslash, "");
+
+            switch (match[1]) {
+
+                // ‘#id’
+                case '#':
+
+                    // 仅对 document 使用 getElementById 。
+                    if (context.nodeType === 9) {
+                        prevResult = context.getElementById(value);
+                        if (prevResult && prevResult.getAttributeNode("id").nodeValue === value) {
+                            result[result.length++] = prevResult;
+                        }
+                        return result;
+                    }
+
+                    break;
+
+                    // ‘.className’
+                case '.':
+
+                    // 仅优化存在 getElementsByClassName 的情况。
+                    if (context.getElementsByClassName) {
+                        pushResult(context.getElementsByClassName(value), result);
+                        return result;
+                    }
+
+                    break;
+
+                    // ‘*’ ‘tagName’
+                default:
+                    addElementsByTagName(context, value, result);
+                    return result;
+
+            }
+
+        }
+
+        // 解析的第二步: 获取所有子节点。并不断进行筛选。
+
+        prevResult = [context];
+
+        // 解析分很多步进行，每次解析  selector 的一部分，直到解析完整个 selector 。
+        for (; ;) {
+
+            // 保存本次处理前的选择器。
+            // 用于在本次处理后检验 selector 是否有变化。
+            // 如果没变化，说明 selector 不能被正确处理，即 selector 包含非法字符。
+            lastSelector = selector;
+
+            // 解析的第三步: 获取所有子节点。第四步再一一筛选。
+            // 针对子选择器和标签选择器优化(不需要获取全部子节点)。
+
+            // ‘ selector’ ‘>selector’ ‘~selector’ ‘+selector’
+            if (match = /^\s*([>+~\s])\s*(\*|(?:[-\w*]|[^\x00-\xa0]|\\.)*)/.exec(selector)) {
+
+                selector = RegExp.rightContext;
+                value = match[2].replace(rBackslash, "").toUpperCase() || "*";
+
+                for (i = 0; elem = prevResult[i]; i++) {
+                    switch (match[1]) {
+                        case ' ':
+                            addElementsByTagName(elem, value, result);
+                            break;
+
+                        case '>':
+                            for (elem = elem.firstChild; elem; elem = elem.nextSibling) {
+                                if (elem.nodeType === 1 && (value === "*" || value === elem.tagName)) {
+                                    result[result.length++] = elem;
+                                }
+                            }
+                            break;
+
+                        case '+':
+                            while (elem = elem.nextSibling) {
+                                if (elem.nodeType === 1) {
+                                    if ((value === "*" || value === elem.tagName)) {
+                                        result[result.length++] = elem;
+                                    }
+                                    break;
+                                }
+                            }
+
+                            break;
+
+                        case '~':
+                            while (elem = elem.nextSibling) {
+                                if (elem.nodeType === 1 && (value === "*" || value === elem.tagName)) {
+                                    result[result.length++] = elem;
+                                }
+                            }
+                            break;
+
+                        default:
+                            throwError(match[0]);
+                    }
+                }
+
+
+            } else {
+
+                // ‘tagName’ ‘*’ 
+                if (match = /^((?:[-\w\*]|[^\x00-\xa0]|\\.)+)/.exec(selector)) {
+                    value = match[1].replace(rBackslash, "").toUpperCase();
+                    selector = RegExp.rightContext;
+                } else {
+                    value = "*";
+                }
+
+                for (i = 0; elem = prevResult[i]; i++) {
+                    addElementsByTagName(elem, value, result);
+                }
+
+            }
+
+            if (prevResult.length > 1) {
+                result.unique();
+            }
+
+            // 解析的第四步: 筛选第三步返回的结果。
+
+            // 如果没有剩余的选择器，说明节点已经处理结束。
+            if (selector) {
+
+                // 进行过滤筛选。
+                selector = filter(result, selector);
+
+            }
+
+            // 如果筛选后没有其它选择器。返回结果。
+            if (!selector) {
+                break;
+            }
+
+            // 解析的第五步: 解析, 如果存在，则继续。
+
+            // ‘,selectpr’ 
+            if (match = /^\s*,\s*/.exec(selector)) {
+                result.push.apply(result, Dom.query(RegExp.rightContext, context));
+                result.unique();
+                break;
+            }
+
+            // 存储当前的结果值，用于下次继续筛选。
+            prevResult = result;
+
+            // 清空之前的属性值。
+            result = [];
+
+            // 如果没有一个正则匹配选择器，则这是一个无法处理的选择器，向用户报告错误。
+            if (lastSelector.length === selector.length) {
+                throwError(selector);
+            }
+        }
+
+        return result;
+    };
+
+    Dom.find = function (selector, context) {
+        return Dom.query(selector, context)[0];
+    };
+
+    /**
+     * 用于查找所有支持的伪类的函数集合。
+     * @private
+     * @static
+     */
+    Dom._pseudos = {
+        target: 'window.location&&window.location.hash;t=t&&t.slice(1)===e.id',
+        contains: 'Dom.getText(e).indexOf(v)>=0',
+        hidden: 'Dom.isHidden(e)',
+        visible: '!Dom.isHidden(e)',
+
+        not: '!Dom.matches(e, v)',
+        has: '!Dom.find(v, e)',
+
+        selected: 'Dom.getAttr(e, "selected")',
+        checked: 'e.checked',
+        enabled: 'e.disabled===false',
+        disabled: 'e.disabled===true',
+
+        input: '^(input|select|textarea|button)$/i.test(e.nodeName)',
+
+        "nth-child": 'Dom.children(elem).indexOf(elem)+1;t=v==="odd"?t%2:v==="even"?t%2===0:t===v',
+        "first-child": '!Dom.prev(elem)',
+        "last-child": '!Dom.next(elem)',
+        "only-child": '!Dom.prev(elem)&&!Dom.next(elem)'
+
+    };
+
+    Dom._relative = {
+        'undefined': '!=null',
+        '=': '===v[2]',
+        '~=': ';t=(" "+t+" ").indexOf(" "+v[2]+" ")>=0',
+        '!=': '!==v[2]',
+        '|=': ';t=("-"+t+"-").indexOf("-"+v[2]+"-")>=0',
+        '^=': ';t=t&&t.indexOf(v[2])===0',
+        '$=': ';t=t&&t.indexOf(v[2].length-t.length)===v[2]',
+        '*=': ';t=t&&t.indexOf(v[2])>=0'
+    };
+
+}
+
+//#endregion
+
+// #endif
+// #endregion
