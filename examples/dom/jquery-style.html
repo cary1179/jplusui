@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="module-info" content="status=complete" />
     <title>模拟 jQuery API</title>
+
     <script type="text/javascript" src="../../src/core/core.js"></script>
     <script type="text/javascript" src="../../src/core/class.js"></script>
     <script type="text/javascript" src="../../src/dom/core.js"></script>
@@ -14,7 +15,7 @@
 <body>
     <article class="demo">
 
-        <p class="demo">Dom.Base 组件已经提供了 DOM 操作的全部方法。本组件扩展了一些链式操作的方法。</p>
+        <p class="demo">本组件提供了一些链式操作的方法。</p>
 
         <section class="demo-control">
             <div id="all">
@@ -32,7 +33,7 @@
                     b = $('#b'),
                     c = $('#c'),
                     d = $('#d'),
-                    abcd = $([a, b, c, d]);
+                    abcd = $().concat(a, b, c, d);
             </script>
         </section>
 

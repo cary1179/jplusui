@@ -1,5 +1,5 @@
 /**
- * @author xuld
+ * @fileOverview 所有 UI 控件的基类。
  */
 
 //#include ui/core/base.css
@@ -7,8 +7,8 @@
 //#include dom/base.js
 
 /**
- * 所有 UI 组件的基类。
- * @class Control
+ * 表示一个 UI 控件。
+ * @class
  * @abstract
  * 控件的生命周期：
  * constructor - 创建控件对应的 Javascript 类。不建议重写构造函数，除非你知道你在做什么。
@@ -27,14 +27,16 @@ var Control = Base.extend({
 
     /**
 	 * 当前 UI 组件的 css 类。
-	 * @protected virtual
+	 * @protected 
+	 * @virtual
 	 */
     cssClass: "x-control",
 
     /**
 	 * 当前 UI 组件的 HTML 模板字符串。其中 x-control 会被替换为 cssClass 属性的值。
 	 * @getter {String} tpl
-	 * @protected virtual
+	 * @protected 
+	 * @virtual
 	 */
     tpl: '<div class="{cssClass}" />',
 
@@ -42,12 +44,13 @@ var Control = Base.extend({
 	 * 当被子类重写时，生成当前控件对应的原生节点。
 	 * @param {Object} options 选项。
      * @return {Element} 原生的 DOM 节点。
-	 * @protected virtual
+	 * @protected 
+	 * @virtual
 	 */
     create: function () {
 
         // 转为对 tpl解析。
-        return Dom.parseNode(String.format(this.tpl, this));
+        return Dom.parse(String.format(this.tpl, this));
     },
 
     /**

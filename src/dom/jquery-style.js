@@ -1,89 +1,116 @@
+/**
+ * @fileOverview 实现链式操作 DOM 的辅助方法。
+ */
 
+/**
+ * 快速执行一个选择器、节点生成或 DOM ready 事件。
+ */
+function $(selector, context) {
+    
+    if (selector) {
 
-(function () {
+        switch (selector.constructor) {
 
-	var Dom = window.Dom,
+            // 选择器或创建节点。
+            case String:
+                selector = selector[0] === '<' ? [Dom.parse(selector, context)] : Array.prototype.slice.call(Dom.query(selector, context));
+                break;
+            
+            // 原生数组。
+            case Array:
+                if (context) {
+                    break;
+                }
+                return $.prototype.concat.apply($(), selector);
 
-		dp = Dom.prototype;
-	
-	/**
-	 * 遍历 Dom 对象，并对每个元素执行 setter。
-	 */
-	dp.access = function (getter, setter, args, valueIndex, emptyGet) {
+            // DOMReady 函数。
+            case Function:
+                return Dom.ready(selector);
 
-		// 如果参数够数，则设置属性，否则为获取属性。
-		if (args.length > valueIndex) {
-			for (var i = 0, len = this.length; i < len; i++) {
-				setter(this[i], args[0], args[1])
-			}
-			return this;
-		}
+            // 已经是 $ 对象。
+            case $:
+                return selector;
 
-		return this.length ? getter(this[0], args[0], args[1]) : emptyGet;
-	};
+            // 原生节点。
+            default:
+                selector = [selector];
 
-	dp.check = function (fn, args) {
-		var ret = new this.constructor(), t;
-		for (var i = 0 ; i < this.length; i++) {
-			if (fn(this[i], args)) {
-				return true;
-			}
-		}
-		return false;
-	};
+        }
 
-	Object.map("on un trigger addClass removeClass toggleClass empty remove dispose", function (funcName) {
-		dp[funcName] = function () {
-			return this.iterate(Dom[funcName], arguments);
-		};
-	});
+    } else {
+        selector = [];
+    }
 
-	dp.style = function () {
-		return this.access(Dom.getStyle, Dom.setStyle, arguments, 1);
-	};
+    // #if CompactMode
 
-	dp.attr = function () {
-		return this.access(Dom.getAttr, Dom.setAttr, arguments, 1);
-	};
+    if (!selector.__proto__) {
+        if (this.constructor !== $) {
+            return new $(selector, true);
+        }
 
-	Object.map('Text Html Size Width Height Offset Position Scroll', function (funcName) {
-		dp[funcName.toLowerCase()] = function () {
-			return this.access(Dom['get' + funcName], Dom['set' + funcName], arguments, 0);
-		};
-	});
+        this.push.apply(this, selector);
+        selector = this;
+    }
 
-	Object.map('closest parent prev next child first last parents prevAll nextAll children offsetParent clone', function (funcName) {
-		dp[funcName] = function (filter) {
-			return this.map(Dom[funcName], filter);
-		};
-	});
+    // #endif
 
-	dp.hasClass = function (filter) {
-		return this.check(Dom.hasClass, filter);
-	};
+    selector.__proto__ = $.prototype;
 
-	Object.map('append prepend after before', function (funcName) {
-		dp[funcName] = function (html) {
+    return selector;
 
-			if (typeof html === 'string') {
-				this.iterate(Dom[funcName], arguments);
-			} else if (this.length) {
+}
 
-				Dom[funcName](this[0], html);
+$.prototype = [];
 
-				for (var i = 1; i < this.length; i++) {
-					Dom[funcName](this[i], html instanceof Dom ? html.clone() : Dom.clone(html));
-				}
+$.prototype.constructor = $;
 
-			}
+$.prototype.concat = function () {
+    for (var i = 0; i < arguments.length; i++) {
+        this.push.apply(this, $(arguments[i]));
+    }
+    return this;
+};
 
-			return this;
-		};
-	});
+$.prototype.item = function(index) {
+    return $(this[index < 0 ? this.length + index : index]);
+};
 
-	dp.appendTo = function (parent) {
-		Dom.query(parent).append(this);
-		return this;
-	};
+$.prototype.query = function (selector) {
+    return $(this[0] && Dom.query(selector, this[0]));
+};
 
-})();
+$.prototype.find = function (selector) {
+    return $(this[0] && Dom.find(selector, this[0]));
+};
+
+"filter reverse sort slice unique".replace(/\w+/g, function (funcName) {
+    $.prototype[funcName] = function () {
+        return $(Array.prototype[funcName].apply(this, arguments));
+    };
+});
+
+"on off trigger addClass removeClass toggleClass remove setText setHtml setAttr show hide toggle setSize offsetParent setOffset setPosition setScroll".replace(/\w+/g, function (funcName) {
+    $.prototype[funcName] = function (arg0, arg1) {
+        for (var i = 0, length = this.length; i < length; i++) {
+            Dom[funcName](this[i], arg0, arg1);
+        }
+        return this;
+    };
+});
+
+"matches getStyle isHidden getAttr getText getHtml contains getSize getScrollSize getOffset getPosition getScroll append prepend after before".replace(/\w+/g, function (funcName) {
+    $.prototype[funcName] = function (arg0) {
+        return this[0] && Dom[funcName](this[0], arg0);
+    };
+});
+
+"closest parent prev next first last children clone".replace(/\w+/g, function (funcName) {
+    $.prototype[funcName] = function (arg0) {
+        return $(this[0] && Dom[funcName](this[0], arg0));
+    };
+});
+
+$.prototype.appendTo = function(parent) {
+    $(parent).append(this);
+    return this;
+};
