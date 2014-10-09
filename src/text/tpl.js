@@ -107,18 +107,29 @@ var Tpl = {
 
             // 存储所有代码块。
             commandStack = [],
-            
+
             // 纯文本各部分。
             part,
-            
+
             // 标准命令。
             stdCommands,
 
             // 标准命令。
-            subCommands;
+            subCommands,
+                
+            specialChars = {
+                '"': '\\"',
+                '\n': '\\n',
+                '\r': '\\r',
+                '\\': '\\\\'
+            };
 
         function getSource(start, end) {
             return tplSource.substring(start, end).replace(/([{}])\1/g, '$1');
+        }
+
+        function replaceSpecialChars(specialChar) {
+            return specialChars[specialChar];
         }
 
         while ((blockStart = tplSource.indexOf('{', blockStart + 1)) >= 0) {
@@ -130,8 +141,8 @@ var Tpl = {
             }
 
             // 处理 { 之前的内容。
-            compiledCode += '$output+="' + getSource(blockEnd + 1, blockStart).replace(/[\r\n\"\\]/g, Tpl._replaceSpecialChars) + '"\n';
-         
+            compiledCode += '$output+="' + getSource(blockEnd + 1, blockStart).replace(/[\r\n\"\\]/g, replaceSpecialChars) + '"\n';
+
             // 从  blockStart 处搜索 }
             blockEnd = blockStart;
 
@@ -142,8 +153,6 @@ var Tpl = {
                 // 处理不存在 } 的情况。
                 if (blockEnd == -1) {
                     throw new SyntaxError("缺少 “}”\r\n在“", tplSource.substr(blockStart) + "”附近");
-                    blockEnd = tplSource.length;
-                    break;
                 }
 
                 // 忽略 }}。
@@ -157,47 +166,46 @@ var Tpl = {
             // 处理 {} 之间的内容。
             part = getSource(blockStart + 1, blockEnd);
 
-            if (stdCommands = /^\s*(\w+)\b/.exec(part)) {
-                switch (stdCommands[1]) {
-                    case 'end':
-                        if (!commandStack.length) {
-                            throw new SyntaxError("发现多余的{end}\r\n在“" + getSource(blockStart - 20, blockStart) + "”附近")
-                        }
-                        compiledCode += commandStack.pop() === 'foreach' ? '},this)\n' : '}\n';
+            stdCommands = /^\s*(\w+)\b/.exec(part) || part;
+
+            switch (stdCommands[1]) {
+                case 'end':
+                    if (!commandStack.length) {
+                        throw new SyntaxError("模板语法错误：发现多余的{end}\r\n在“" + tplSource.substring(blockStart - 20, blockStart) + "”附近");
+                    }
+                    compiledCode += commandStack.pop() === 'foreach' ? '},this)\n' : '}\n';
+                    break;
+                case 'for':
+                case 'function':
+                    if (subCommands = /^\s*for\s*(var)?\s*([\w$]+)(\s*,\s*([\w$]+))?\s+in\s+(.*)$/.exec(part)) {
+                        commandStack.push('foreach');
+                        compiledCode += 'Object.each(' + subCommands[5] + ',function(' + subCommands[2] + ',' + (subCommands[4] || '$key') + ',$target){\n';
                         break;
-                    case 'for':
-                    case 'function':
-                        if (subCommands = /^\s*for\s*(var)?\s*([\w$]+)\s+in\s+(.*)$/.exec(part)) {
-                            commandStack.push('foreach');
-                            compiledCode += 'Object.each(' + subCommands[3] + ',function(' + subCommands[2] + ',$key,$target){\n';
-                            break;
-                        }
-                        commandStack.push(stdCommands[1]);
-                        compiledCode += part + '{\n';
-                        break;
-                    case 'if':
-                    case 'while':
-                    case 'with':
-                        commandStack.push(stdCommands[1]);
-                        // 追加判断表达式括号。
-                        compiledCode += stdCommands[1] + '(' + part.substr(stdCommands[0].length) + '){\n';
-                        break;
-                    case 'else':
-                        subCommands = /if\b(.*)/.exec(part);
-                        compiledCode += subCommands ? '}else if(' + subCommands[1] + ') {\n' : '}else{\n';
-                        break
-                    case 'var':
-                        compiledCode += part + '\n';
-                        break;
-                    case 'break':
-                    case 'continue':
-                        compiledCode += commandStack[commandStack.length - 1] === 'foreach' ? stdCommands[1].length === 5 ? 'return false\n' : 'return\n' : (part + '\n');
-                        break;
-                    default:
-                        compiledCode += (/;$/.test(part) ? part : ('$output+=' + part)) + '\n';
-                }
-            } else {
-                compiledCode += (/;$/.test(part) ? part : ('$output+=' + part)) + '\n';
+                    }
+                    commandStack.push(stdCommands[1]);
+                    compiledCode += part + '{\n';
+                    break;
+                case 'if':
+                case 'while':
+                case 'with':
+                    commandStack.push(stdCommands[1]);
+                    // 追加判断表达式括号。
+                    compiledCode += stdCommands[1] + '(' + part.substr(stdCommands[0].length) + '){\n';
+                    break;
+                case 'else':
+                    subCommands = /if\b(.*)/.exec(part);
+                    compiledCode += subCommands ? '}else if(' + subCommands[1] + ') {\n' : '}else{\n';
+                    break
+                case 'var':
+                case 'void':
+                    compiledCode += part + '\n';
+                    break;
+                case 'break':
+                case 'continue':
+                    compiledCode += commandStack[commandStack.length - 1] === 'foreach' ? stdCommands[1].length === 5 ? 'return false\n' : 'return\n' : (part + '\n');
+                    break;
+                default:
+                    compiledCode += (/;\s*$/.test(part) ? part : ('$output+=' + part)) + '\n';
             }
 
             // 更新下一次开始查找的位置。
@@ -205,31 +213,19 @@ var Tpl = {
 
         }
 
-        // 处理 } 之后的内容。
-        compiledCode += '$output+="' + getSource(blockEnd + 1, tplSource.length).replace(/[\r\n\"\\]/g, Tpl._replaceSpecialChars) + '"\nreturn $output';
-
-        try {
-            if (commandStack.length) {
-                throw new SyntaxError("缺少 " + commandStack.length + " 个 {end}");
-            }
-            return new Function("$data", compiledCode);
-        } catch (e) {
-            var message = e.message;
-            message += '\r\n源码：' + compiledCode;
-            throw new SyntaxError(message);
+        if (commandStack.length) {
+            throw new SyntaxError('模板语法错误：缺少 ' + commandStack.length + ' 个 {end}\r\n源码：' + compiledCode);
         }
 
-    },
+        // 处理 } 之后的内容。
+        compiledCode += '$output+="' + getSource(blockEnd + 1, tplSource.length).replace(/[\r\n\"\\]/g, replaceSpecialChars) + '"\nreturn $output';
 
-    _specialChars: {
-        '"': '\\"',
-        '\n': '\\n',
-        '\r': '\\r',
-        '\\': '\\\\'
-    },
+        try {
+            return new Function("$data", compiledCode);
+        } catch (e) {
+            throw new SyntaxError('模板语法错误：' + e.message + '\r\n源码：' + compiledCode);
+        }
 
-    _replaceSpecialChars: function (specialChar) {
-        return Tpl._specialChars[specialChar];
     }
 
 };
