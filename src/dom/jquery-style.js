@@ -33,7 +33,7 @@ function $(selector, context) {
 
             // 原生节点。
             default:
-                selector = [selector];
+                selector = selector.length != null && selector.length.constructor === Number ? Array.prototype.slice.call(selector, 0) : [selector];
 
         }
 
@@ -66,7 +66,19 @@ $.prototype.constructor = $;
 
 $.prototype.concat = function () {
     for (var i = 0; i < arguments.length; i++) {
-        this.push.apply(this, $(arguments[i]));
+
+        arguments[i] = $(arguments[i]);
+
+        // #if CompactMode
+
+        // IE6-8 不支持直接转换。
+        if (!+"\v") {
+            arguments[i] = Array.prototype.slice.call(arguments[i]);
+        }
+
+        // #endif
+
+        this.push.apply(this, arguments[i]);
     }
     return this;
 };
@@ -111,6 +123,6 @@ $.prototype.find = function (selector) {
 });
 
 $.prototype.appendTo = function(parent) {
-    $(parent).append(this);
+    $(parent).append(this[0]);
     return this;
 };

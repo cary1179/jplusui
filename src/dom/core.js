@@ -203,11 +203,63 @@ var Dom = {
      * @param {Function} callback 当 DOM 解析完成后的回调函数。
      */
     ready: function (/*Function*/callback) {
+
         if (/complete|loaded|interactive/.test(document.readyState) && document.body) {
             callback.call(document);
         } else {
-            Dom.on(document, 'DOMContentLoaded', callback);
+
+            // #if CompactMode
+
+            if (window.attachEvent) {
+                setTimeout(function() {
+                    Dom.ready(callback);
+                }, 0);
+            }
+
+            // #endif
+
+            Dom.addListener(document, 'DOMContentLoaded', callback);
         }
+    },
+
+    /**
+     * 为 DOM 添加一个事件监听器。
+     * @param {Element} elem 要处理的元素。
+     * @param {String} eventName 要添加的事件名。
+     * @param {Function} eventListener 要添加的事件监听器。
+     */
+    addListener:
+
+    // #if CompactMode
+
+    window.attachEvent ? function (/*Element*/elem, eventName, /*Function*/eventListener) {
+        elem.attachEvent('on' + eventName, eventListener);
+    } :
+
+    // #endif
+
+    function (/*Element*/elem, eventName, /*Function*/eventListener) {
+        elem.addEventListener(eventName, eventListener, false);
+    },
+
+    /**
+     * 为 DOM 移除一个事件监听器。
+     * @param {Element} elem 要处理的元素。
+     * @param {String} eventName 要添加的事件名。
+     * @param {Function} eventListener 要添加的事件监听器。
+     */
+    removeListener:
+
+    // #if CompactMode
+
+    window.detachEvent ? function (/*Element*/elem, eventName, /*Function*/eventListener) {
+        elem.detachEvent('on' + eventName, eventListener);
+    } :
+
+    // #endif
+
+    function (/*Element*/elem, eventName, /*Function*/eventListener) {
+        elem.removeEventListener(eventName, eventListener, false);
     },
 
     /**
@@ -554,23 +606,128 @@ var Dom = {
 
     // #endregion
 
-    // #region 样式和属性
+    // #region 属性和样式
 
-    _fixProp: function (name) {
-        return (Dom._propFix || (Dom._propFix = {
-            'for': 'htmlFor',
-            'class': 'className',
-            'tabindex': 'tabIndex',
-            'readonly': 'readOnly',
-            'maxlength': 'maxLength',
-            'cellspacing': 'cellSpacing',
-            'cellpadding': 'cellPadding',
-            'rowspan': 'rowSpan',
-            'colspan': 'colSpan',
-            'usemap': 'useMap',
-            'frameborder': 'frameBorder',
-            'contenteditable': 'contentEditable'
-        }))[name] || name;
+    /**
+     * 修复部分属性的获取和设置方式。
+     */
+    _fixAttr: function (name) {
+        var attrHooks = Dom._attrHooks;
+        if (!attrHooks) {
+
+            Dom._attrHooks = attrHooks = {
+
+                // 默认用于获取和设置属性的钩子。
+                _: function (elem, name, getting, value) {
+                    if (getting) {
+                        return !(name in elem) && elem.getAttribute ? elem[name] : elem.getAttribute(name);
+                    }
+
+                    if (name in elem || !elem.setAttribute) {
+                        elem[name] = value;
+                    } else if (value === null) {
+                        elem.removeAttribute(name);
+                    } else {
+                        elem.setAttribute(name, value);
+                    }
+
+                },
+
+                style: function (elem, name, getting, value) {
+                    elem = elem[name];
+                    if (getting) {
+                        return elem.cssText;
+                    }
+                    elem.cssText = value;
+                },
+                
+                //// NOTE: 不同浏览器获取不支持 tabIndex 的节点的 tabIndex 属性时返回值不同。
+                //// 由于 tabIndex 使用频率低，因此框架不提供兼容支持，参考：
+                //// http://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
+                //tabIndex: function (elem, name, getting, value) {
+                //    if (getting) {
+                //        var value = elem.getAttributeNode(name);
+                //        value = value && value.specified && value.value || null;
+                //        return type ? value : +value;
+                //    }
+                //    elem[name] = value;
+                //},
+
+                selected: function (elem, name, getting, value) {
+
+                    // Webkit、IE 误报 selected 属性。
+                    // 通过调用 parentNode 属性修复。
+                    var parent = elem.parentNode;
+
+                    // 激活 select, 更新 option 的 select 状态。
+                    if (parent) {
+                        parent.selectedIndex;
+
+                        // 同理，处理 optgroup 
+                        if (parent.parentNode) {
+                            parent.parentNode.selectedIndex;
+                        }
+                    }
+
+                    return attrHooks._(elem, name, getting, value);
+
+                }
+
+            };
+
+            // #if CompactMode
+
+            if (!+"\v") {
+                attrHooks._default = attrHooks._;
+                attrHooks._ = function (elem, name, getting, value) {
+
+                    // 不是节点则获取属性。
+                    if (!elem.getAttributeNode) {
+                        return attrHooks._default(elem, name, getting, value);
+                    }
+
+                    var node = elem.getAttributeNode(name);
+                    if (getting) {
+                        return name ? name.value || (name.specified ? "" : null) : null;
+                    }
+
+                    // 如果 value === null 表示删除节点。
+                    if (value === null) {
+                        if (node) {
+                            node.nodeValue = '';
+                            elem.removeAttributeNode(node);
+                        }
+                    } else if (node) {
+                        node.nodeValue = value;
+                    } else {
+                        elem.setAttribute(name, value);
+                    }
+
+                };
+            }
+
+            // #endif
+
+            Dom._attrFix = {
+                'for': 'htmlFor',
+                'class': 'className',
+                'tabindex': 'tabIndex',
+                'readonly': 'readOnly',
+                'maxlength': 'maxLength',
+                'cellspacing': 'cellSpacing',
+                'cellpadding': 'cellPadding',
+                'rowspan': 'rowSpan',
+                'colspan': 'colSpan',
+                'usemap': 'useMap',
+                'frameborder': 'frameBorder',
+                'contenteditable': 'contentEditable'
+            };
+
+        }
+
+        // NOTE: <form> 元素会获取内部存在指定 ID 的节点。
+
+        return attrHooks[Dom._attrFix[name] || name] || attrHooks._default;
     },
 
     /**
@@ -581,15 +738,7 @@ var Dom = {
      * @static
      */
     getAttr: function (/*Element*/elem, name) {
-
-        // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
-
-        name = Dom._fixProp(name);
-
-        // 如果存在钩子，使用钩子获取属性。
-        // 最后使用 defaultHook 获取。
-        return name in elem ? elem[name] : elem.getAttribute(name);
-
+        return Dom._fixAttr(name)(elem, name, true);
     },
 
     /**
@@ -617,30 +766,7 @@ var Dom = {
      * <pre lang="htm" format="none">[ &lt;img /&gt; ]</pre>
      */
     setAttr: function (elem, name, value) {
-
-        // #assert 'readOnly tabIndex defaultChecked defaultSelected accessKey useMap contentEditable maxLength'.toLowerCase().indexOf(name) === -1, "属性 " + name + " 不能为全小写"
-
-        name = Dom._fixProp(name);
-
-        if (name in elem) {
-            elem[name] = value;
-        } else if (value === null) {
-            elem.removeAttribute(name);
-        } else {
-            elem.setAttribute(name, value);
-        }
-    },
-
-    getProp: function (/*Element*/elem, name) {
-
-
-
-        return elem[name];
-    },
-
-    setProp: function (/*Element*/elem, name, value) {
-
-        elem[name] = value;
+        return Dom._fixAttr(name)(elem, name, false, value);
     },
 
     _fixText: function (node) {
@@ -650,7 +776,7 @@ var Dom = {
             'TEXTAREA': 'value',
             '#text': 'nodeValue',
             '#comment': 'nodeValue'
-        }))[node.nodeName] || 'textContent';
+        }))[node.nodeName] || ('textContent' in document ? 'textContent' : 'innerText');
     },
 
     /**
@@ -963,6 +1089,10 @@ var Dom = {
         // 将属性名转为骆驼形式。
         cssPropertyName = Dom.camelCase(cssPropertyName);
 
+        if (!window.getComputedStyle && value === 'opacity') {
+
+        }
+
         // 为数字自动添加 px 单位。
         if (value != null && value.constructor === Number) {
             var styleNumbers = Dom.styleNumbers;
@@ -1057,7 +1187,7 @@ var Dom = {
 
     // #endregion
 
-    // #region 定位和尺寸
+    // #region 尺寸和定位
 
     /**
 	 * 根据不同的内容进行计算。
@@ -1430,7 +1560,7 @@ if (!('firstElementChild' in document)) {
 
 //#region CSS 选择器
 
-if (!window.Element || !Element.prototype.querySelector) {
+if (!window.Element || !Element.prototype.querySelector || !+"\v") {
 
     /**
      * 使用指定的选择器代码对指定的结果集进行一次查找。
@@ -1767,6 +1897,17 @@ if (!window.Element || !Element.prototype.querySelector) {
 }
 
 //#endregion
+
+// #region 其它
+
+// IE6: 清空缓存。
+if (document.execCommand) {
+    try {
+        document.execCommand("BackgroundImageCache", false, true);
+    } catch (e) { }
+}
+
+// #endregion
 
 // #endif
 // #endregion

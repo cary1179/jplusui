@@ -184,7 +184,7 @@ if (!Array.isArray) {
 
 }
 
-// IE6-8: 不支持 Array.prototype.indexOf
+// IE6-8: 不支持 Array.prototype.forEach
 if (!Array.prototype.forEach) {
 
     /**
@@ -216,6 +216,19 @@ if (!Array.prototype.forEach) {
      */
     Array.prototype.forEach = function (fn, scope) {
         return Object.each(this, fn, scope);
+    };
+
+    Array.prototype.filter = function(fn, scope) {
+        var results = [];
+        for (var value, i = 0, l = this.length; i < l; i++) {
+            if (i in this) {
+                value = this[i];
+                if (fn.call(scope, value, i, this)) {
+                    results.push(value);
+                }
+            }
+        }
+        return results;
     };
 
 }
